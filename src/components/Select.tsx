@@ -8,9 +8,10 @@ export interface SelectOption {
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   options: SelectOption[];
+  error?: string;
 }
 
-export default function Select({ label, options, id, className = '', ...props }: SelectProps) {
+export default function Select({ label, options, id, error, className = '', ...props }: SelectProps) {
   const selectId = id ?? props.name;
 
   return (
@@ -22,7 +23,9 @@ export default function Select({ label, options, id, className = '', ...props }:
       )}
       <select
         id={selectId}
-        className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 ${className}`}
+        className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+          error ? 'border-red-400' : 'border-slate-200'
+        } ${className}`}
         {...props}
       >
         {options.map((option) => (
@@ -31,6 +34,7 @@ export default function Select({ label, options, id, className = '', ...props }:
           </option>
         ))}
       </select>
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );
 }
