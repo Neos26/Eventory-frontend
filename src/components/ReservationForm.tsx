@@ -10,9 +10,9 @@ import {
 } from '../schemas/reservationForm';
 import type { ReservationFormErrors, ReservationFormValues } from '../schemas/reservationForm';
 import type { ReservationPayload } from '../api/reservations';
-import { fetchResourceAvailability } from '../api/resources';
-import type { ResourceAvailability } from '../api/resources';
-import { getErrorMessage } from '../api/events';
+import { fetchResourceAvailability } from '../api/resourceApi';
+import type { ResourceAvailability } from '../api/resourceApi';
+import { getErrorMessage } from '../api/eventApi';
 
 export interface FormRef {
   _id: string;

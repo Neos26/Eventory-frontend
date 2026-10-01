@@ -10,7 +10,7 @@ import {
   validateEventForm,
 } from '../schemas/eventForm';
 import type { EventFormErrors, EventFormValues } from '../schemas/eventForm';
-import type { EventPayload, RefWithName } from '../api/events';
+import type { EventPayload, RefWithName } from '../api/eventApi';
 
 interface EventFormProps {
   organizations: RefWithName[];

@@ -19,9 +19,9 @@ import {
   fetchResources,
   resourceStatus,
   updateResource,
-} from '../api/resources';
-import type { ResourcePayload, ResourceRecord } from '../api/resources';
-import { getErrorMessage } from '../api/events';
+} from '../api/resourceApi';
+import type { ResourcePayload, ResourceRecord } from '../api/resourceApi';
+import { getErrorMessage } from '../api/eventApi';
 import {
   RESOURCE_CATEGORIES,
   resourceCategoryLabel,

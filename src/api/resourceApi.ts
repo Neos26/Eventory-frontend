@@ -1,65 +1,23 @@
 import api from './client';
-import type { RefWithName } from './events';
 
-// ---------- Types (mirror the backend Mongoose schemas) ----------
+// ---------- Types (canonical definitions live in src/types) ----------
 
-export type ResourceCategory =
-  | 'furniture'
-  | 'audio_visual'
-  | 'decoration'
-  | 'catering'
-  | 'IT'
-  | 'transport'
-  | 'other';
+export type {
+  ResourceCategory,
+  ResourceRecord,
+  ResourceAvailability,
+  ResourcePayload,
+  ResourceStatusKey,
+  ResourceStatus,
+} from '../types/resource';
 
-export interface ResourceRecord {
-  _id: string;
-  organization?: string | RefWithName;
-  name: string;
-  category: ResourceCategory;
-  description?: string;
-  quantityTotal: number;
-  quantityAvailable: number;
-  unit?: string;
-  costPerUnit?: number;
-  isAvailable: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// Response of GET /api/resources/:id/availability - computed from active
-// reservations rather than the stored quantityAvailable field.
-export interface ResourceAvailability {
-  resource: { id: string; name: string; unit?: string };
-  total: number;
-  reserved: number;
-  available: number;
-  activeReservations: number;
-}
-
-export interface ResourcePayload {
-  name: string;
-  category: ResourceCategory;
-  description?: string;
-  quantityTotal: number;
-  quantityAvailable?: number;
-  unit?: string;
-  isAvailable?: boolean;
-}
+import type { ResourceAvailability, ResourcePayload, ResourceRecord, ResourceStatus } from '../types/resource';
 
 // ---------- Helpers ----------
 
 const unwrap = <T>(response: { data: { data: T } }): T => response.data.data;
 
 // ---------- Status ----------
-
-export type ResourceStatusKey = 'active' | 'low_stock' | 'out_of_stock' | 'inactive';
-
-export interface ResourceStatus {
-  key: ResourceStatusKey;
-  label: string;
-  tone: 'gray' | 'green' | 'amber' | 'red';
-}
 
 // Inactive resources win over stock levels; otherwise stock decides.
 export function resourceStatus(

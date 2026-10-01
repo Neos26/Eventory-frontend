@@ -26,10 +26,10 @@ import type {
   ReservationRecord,
   ReservationStatus,
 } from '../api/reservations';
-import { fetchEvents, getErrorMessage, refId, resolveName } from '../api/events';
-import type { EventRecord } from '../api/events';
-import { fetchResources } from '../api/resources';
-import type { ResourceRecord } from '../api/resources';
+import { fetchEvents, getErrorMessage, refId, resolveName } from '../api/eventApi';
+import type { EventRecord } from '../api/eventApi';
+import { fetchResources } from '../api/resourceApi';
+import type { ResourceRecord } from '../api/resourceApi';
 import { reservationToFormValues } from '../schemas/reservationForm';
 import { formatDate, formatTime } from '../utils/format';
 

@@ -1,83 +1,37 @@
 import axios from 'axios';
 import api from './client';
 
-// ---------- Types (mirror the backend Mongoose schemas) ----------
+// ---------- Types (canonical definitions live in src/types) ----------
 
-export type EventStatus = 'draft' | 'planned' | 'ongoing' | 'completed' | 'cancelled';
+export type {
+  EventStatus,
+  RequirementPriority,
+  RefWithName,
+  EventRecord,
+  RequirementRecord,
+  EventPayload,
+  RequirementPayload,
+  ResourceIssue,
+  ReadinessConflict,
+  Readiness,
+  ReadinessReport,
+  ConflictType,
+  Conflict,
+  ConflictRecord,
+  ConflictReport,
+  ConflictsReport,
+} from '../types/event';
+export type { OrganizationRecord } from '../types/organization';
+export type { VenueRecord } from '../types/venue';
+export type { ResourceRecord } from '../types/resource';
 
-export type RequirementPriority = 'low' | 'medium' | 'high';
+import type { EventRecord, EventPayload } from '../types/event';
+import type { OrganizationRecord } from '../types/organization';
+import type { RequirementPayload, RequirementRecord, ReadinessReport, ConflictsReport } from '../types/event';
 
-export interface RefWithName {
-  _id: string;
-  name: string;
-}
-
-export interface OrganizationRecord {
-  _id: string;
-  name: string;
-  description?: string;
-  email?: string;
-  phone?: string;
-}
-
-export interface VenueRecord {
-  _id: string;
-  name: string;
-  capacity?: number;
-  isActive?: boolean;
-}
-
-export interface ResourceRecord {
-  _id: string;
-  name: string;
-  category?: string;
-  unit?: string;
-  quantityTotal: number;
-  quantityAvailable: number;
-}
-
-export interface EventRecord {
-  _id: string;
-  organization: string | RefWithName;
-  venue?: string | RefWithName | null;
-  name: string;
-  description?: string;
-  category: string;
-  startDate: string;
-  endDate: string;
-  expectedAttendees: number;
-  status: EventStatus;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface RequirementRecord {
-  _id: string;
-  event: string;
-  resource: string | RefWithName;
-  quantity: number;
-  requiredDate: string;
-  priority: RequirementPriority;
-  status: string;
-  notes?: string;
-}
-
-export interface EventPayload {
-  organization: string;
-  venue?: string | null;
-  name: string;
-  description?: string;
-  startDate: string;
-  endDate: string;
-  status: EventStatus;
-}
-
-export interface RequirementPayload {
-  resource: string;
-  quantity: number;
-  priority?: RequirementPriority;
-  requiredDate?: string;
-}
+// Venue lookups live in the venue service; re-exported here because the
+// event pages have always imported them from this module.
+export { fetchVenues } from './venueApi';
 
 // ---------- Helpers ----------
 
@@ -101,7 +55,7 @@ export function isNotFound(error: unknown): boolean {
 // Refs are plain ids in list responses and populated objects in detail
 // responses - this reads a display name from either shape.
 export function resolveName(
-  ref: string | RefWithName | null | undefined,
+  ref: string | { _id: string; name: string } | null | undefined,
   lookup: Map<string, string>,
   fallback = '—',
 ): string {
@@ -110,7 +64,7 @@ export function resolveName(
   return lookup.get(ref) ?? fallback;
 }
 
-export function refId(ref: string | RefWithName | null | undefined): string {
+export function refId(ref: string | { _id: string } | null | undefined): string {
   if (!ref) return '';
   return typeof ref === 'string' ? ref : ref._id;
 }
@@ -126,8 +80,12 @@ export const fetchEvent = async (id: string): Promise<EventRecord> =>
 export const createEvent = async (payload: EventPayload): Promise<EventRecord> =>
   unwrap(await api.post('/events', payload));
 
-export const updateEvent = async (id: string, payload: EventPayload): Promise<EventRecord> =>
-  unwrap(await api.put(`/events/${id}`, payload));
+// The backend applies only the fields present in the body, so partial
+// updates (e.g. confirming an event) are allowed.
+export const updateEvent = async (
+  id: string,
+  payload: Partial<EventPayload>,
+): Promise<EventRecord> => unwrap(await api.put(`/events/${id}`, payload));
 
 export const deleteEvent = async (id: string): Promise<void> => {
   await api.delete(`/events/${id}`);
@@ -151,20 +109,19 @@ export const updateRequirement = async (
 ): Promise<RequirementRecord> =>
   unwrap(await api.put(`/events/${eventId}/requirements/${requirementId}`, payload));
 
-export const deleteRequirement = async (
-  eventId: string,
-  requirementId: string,
-): Promise<void> => {
+export const deleteRequirement = async (eventId: string, requirementId: string): Promise<void> => {
   await api.delete(`/events/${eventId}/requirements/${requirementId}`);
 };
+
+// ---------- Readiness & conflicts ----------
+
+export const fetchEventReadiness = async (eventId: string): Promise<ReadinessReport> =>
+  unwrap(await api.get(`/events/${eventId}/readiness`));
+
+export const fetchEventConflicts = async (eventId: string): Promise<ConflictsReport> =>
+  unwrap(await api.get(`/events/${eventId}/conflicts`));
 
 // ---------- Lookups ----------
 
 export const fetchOrganizations = async (): Promise<OrganizationRecord[]> =>
   unwrap(await api.get('/organizations'));
-
-export const fetchVenues = async (): Promise<VenueRecord[]> =>
-  unwrap(await api.get('/venues'));
-
-export const fetchResources = async (): Promise<ResourceRecord[]> =>
-  unwrap(await api.get('/resources'));

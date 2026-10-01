@@ -23,6 +23,8 @@ export default function Select({ label, options, id, error, className = '', ...p
       )}
       <select
         id={selectId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${selectId}-error` : undefined}
         className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
           error ? 'border-red-400' : 'border-slate-200'
         } ${className}`}
@@ -34,7 +36,11 @@ export default function Select({ label, options, id, error, className = '', ...p
           </option>
         ))}
       </select>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && (
+        <p id={`${selectId}-error`} role="alert" className="mt-1 text-xs text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

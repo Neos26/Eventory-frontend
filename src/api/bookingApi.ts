@@ -1,0 +1,38 @@
+import api from './client';
+import type { BookingPayload, BookingRecord, BookingStatus } from '../types/booking';
+import type { BookingEventRef } from '../types/booking';
+
+const unwrap = <T>(response: { data: { data: T } }): T => response.data.data;
+
+export type * from '../types/booking';
+
+// GET /api/bookings (bookers only receive their own bookings).
+export const fetchBookings = async (status?: BookingStatus): Promise<BookingRecord[]> => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return unwrap(await api.get(`/bookings${query}`));
+};
+
+// GET /api/bookings/:id
+export const fetchBooking = async (id: string): Promise<BookingRecord> =>
+  unwrap(await api.get(`/bookings/${id}`));
+
+// POST /api/bookings - submits a booking request (starts as Pending).
+export const createBooking = async (payload: BookingPayload): Promise<BookingRecord> =>
+  unwrap(await api.post('/bookings', payload));
+
+// PUT /api/bookings/:id/cancel - only Pending bookings can be cancelled.
+export const cancelBooking = async (id: string): Promise<BookingRecord> =>
+  unwrap(await api.put(`/bookings/${id}/cancel`, {}));
+
+// Bookings store a populated event; this reads it from either shape.
+export function bookingEvent(booking: BookingRecord): BookingEventRef | null {
+  return typeof booking.eventId === 'string' ? null : booking.eventId;
+}
+
+export function bookingEventId(booking: BookingRecord): string {
+  return typeof booking.eventId === 'string' ? booking.eventId : booking.eventId._id;
+}
+
+export function bookingEventName(booking: BookingRecord): string {
+  return bookingEvent(booking)?.name ?? 'Unknown event';
+}

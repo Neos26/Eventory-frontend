@@ -15,8 +15,8 @@ import {
   getErrorMessage,
   isNotFound,
   updateEvent,
-} from '../api/events';
-import type { EventPayload, EventRecord, OrganizationRecord, VenueRecord } from '../api/events';
+} from '../api/eventApi';
+import type { EventPayload, EventRecord, OrganizationRecord, VenueRecord } from '../api/eventApi';
 import { eventToFormValues } from '../schemas/eventForm';
 
 export default function EventEdit() {

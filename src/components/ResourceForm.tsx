@@ -10,7 +10,7 @@ import {
   validateResourceForm,
 } from '../schemas/resourceForm';
 import type { ResourceFormErrors, ResourceFormValues } from '../schemas/resourceForm';
-import type { ResourcePayload } from '../api/resources';
+import type { ResourcePayload } from '../api/resourceApi';
 
 interface ResourceFormProps {
   submitLabel: string;

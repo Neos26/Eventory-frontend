@@ -19,19 +19,19 @@ import {
   deleteRequirement,
   fetchEvent,
   fetchRequirements,
-  fetchResources,
   getErrorMessage,
   isNotFound,
   refId,
   resolveName,
   updateRequirement,
-} from '../api/events';
+} from '../api/eventApi';
+import { fetchResources } from '../api/resourceApi';
 import type {
   EventRecord,
   RequirementPriority,
   RequirementRecord,
   ResourceRecord,
-} from '../api/events';
+} from '../api/eventApi';
 import { formatDate } from '../utils/format';
 
 const priorityTones: Record<RequirementPriority, 'gray' | 'indigo' | 'red'> = {

@@ -11,8 +11,8 @@ import {
   fetchOrganizations,
   fetchVenues,
   getErrorMessage,
-} from '../api/events';
-import type { EventPayload, OrganizationRecord, VenueRecord } from '../api/events';
+} from '../api/eventApi';
+import type { EventPayload, OrganizationRecord, VenueRecord } from '../api/eventApi';
 
 export default function EventCreate() {
   useDocumentTitle('Create Event');

@@ -71,6 +71,7 @@ The backend runs separately in `backend/server` (`npm run dev`).
 | `/events/:id/edit` | Edit event |
 | `/events/:id/requirements` | Event requirements |
 | `/events/:id/readiness` | Event readiness |
+| `/events/:id/conflicts` | Event conflicts |
 | `/resources` | Resources |
 | `/resources/:id` | Resource details |
 | `/reservations` | Reservations |

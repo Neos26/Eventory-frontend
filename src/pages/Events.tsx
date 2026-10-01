@@ -19,8 +19,8 @@ import {
   fetchVenues,
   getErrorMessage,
   resolveName,
-} from '../api/events';
-import type { EventRecord, EventStatus, OrganizationRecord, VenueRecord } from '../api/events';
+} from '../api/eventApi';
+import type { EventRecord, EventStatus, OrganizationRecord, VenueRecord } from '../api/eventApi';
 import { formatDate, formatTime } from '../utils/format';
 
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {

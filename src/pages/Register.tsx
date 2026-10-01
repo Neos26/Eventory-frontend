@@ -1,0 +1,313 @@
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Building2, ChevronDown, Loader2, LockKeyhole, Mail, User, Users } from 'lucide-react';
+import { fetchOrganizations, getErrorMessage } from '../api/eventApi';
+import type { OrganizationRecord } from '../api/eventApi';
+import { homeForRole, useAuth } from '../context/AuthContext';
+import useDocumentTitle from '../hooks/useDocumentTitle';
+import Logo from '../components/Logo';
+
+const registerSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required'),
+    email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().min(1, 'Confirm your password'),
+    role: z.enum(['booker', 'management']),
+    organizationId: z.string(),
+  })
+  .superRefine((values, context) => {
+    if (values.confirmPassword !== values.password) {
+      context.addIssue({
+        code: 'custom',
+        path: ['confirmPassword'],
+        message: 'Passwords do not match',
+      });
+    }
+  });
+
+type RegisterValues = z.infer<typeof registerSchema>;
+
+export default function Register() {
+  useDocumentTitle('Create account');
+  const { user, status, register } = useAuth();
+  const navigate = useNavigate();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [organizations, setOrganizations] = useState<OrganizationRecord[]>([]);
+
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'booker',
+      organizationId: '',
+    },
+  });
+
+  // Organizations are public - fetched so new users can optionally join one.
+  useEffect(() => {
+    let cancelled = false;
+    fetchOrganizations()
+      .then((list) => {
+        if (!cancelled) setOrganizations(list);
+      })
+      .catch(() => {
+        // Registration still works without the picker.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Already signed in? Go straight to the role home.
+  if (status === 'ready' && user) {
+    return <Navigate to={homeForRole(user.role)} replace />;
+  }
+
+  const onSubmit = handleSubmit(async (values) => {
+    setServerError(null);
+    try {
+      const created = await register({
+        name: values.name.trim(),
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+        role: values.role,
+        ...(values.organizationId && { organizationId: values.organizationId }),
+      });
+      navigate(homeForRole(created.role), { replace: true });
+    } catch (error) {
+      setServerError(getErrorMessage(error));
+    }
+  });
+
+  const fieldClass = (hasError: boolean) =>
+    `w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+      hasError ? 'border-red-400' : 'border-slate-200'
+    }`;
+
+  return (
+    <div className="flex min-h-screen">
+      {/* Brand panel - hidden on small screens */}
+      <div className="hidden w-1/2 flex-col justify-between bg-brand-950 p-10 text-white lg:flex">
+        <Logo className="text-white" />
+        <div>
+          <h1 className="text-4xl font-bold leading-tight">
+            Join Eventory.
+            <br />
+            Create events.
+            <br />
+            <span className="text-brand-300">Stay conflict-free.</span>
+          </h1>
+          <p className="mt-4 max-w-md text-sm text-brand-100/80">
+            One account to plan events, request resources and follow every booking to approval.
+          </p>
+        </div>
+        <p className="text-xs text-brand-300">Eventory — Event Resource Management System</p>
+      </div>
+
+      {/* Sign-up card */}
+      <div className="flex w-full items-center justify-center px-4 py-12 sm:px-6 lg:w-1/2">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 lg:hidden">
+            <Logo />
+          </div>
+
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Create your account</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Register to start planning events in Eventory.
+          </p>
+
+          <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4">
+            {serverError && (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {serverError}
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-700">
+                Full name
+              </label>
+              <div className="relative">
+                <User
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
+                <input
+                  id="name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Juan Dela Cruz"
+                  className={fieldClass(Boolean(errors.name))}
+                  {...registerField('name')}
+                />
+              </div>
+              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
+                Email
+              </label>
+              <div className="relative">
+                <Mail
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@eventory.edu"
+                  className={fieldClass(Boolean(errors.email))}
+                  {...registerField('email')}
+                />
+              </div>
+              {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+                Password
+              </label>
+              <div className="relative">
+                <LockKeyhole
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="At least 6 characters"
+                  className={fieldClass(Boolean(errors.password))}
+                  {...registerField('password')}
+                />
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                Confirm password
+              </label>
+              <div className="relative">
+                <LockKeyhole
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Repeat your password"
+                  className={fieldClass(Boolean(errors.confirmPassword))}
+                  {...registerField('confirmPassword')}
+                />
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1 text-xs text-red-600">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="role" className="mb-1 block text-sm font-medium text-slate-700">
+                Account type
+              </label>
+              <div className="relative">
+                <Users
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
+                <select
+                  id="role"
+                  className={`${fieldClass(false)} cursor-pointer appearance-none pr-9`}
+                  {...registerField('role')}
+                >
+                  <option value="booker">Booker — create events and request bookings</option>
+                  <option value="management">Management — review and approve bookings</option>
+                </select>
+                <ChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
+
+            {organizations.length > 0 && (
+              <div>
+                <label
+                  htmlFor="organizationId"
+                  className="mb-1 block text-sm font-medium text-slate-700"
+                >
+                  Organization <span className="font-normal text-slate-400">(optional)</span>
+                </label>
+                <div className="relative">
+                  <Building2
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <select
+                    id="organizationId"
+                    className={`${fieldClass(false)} cursor-pointer appearance-none pr-9`}
+                    {...registerField('organizationId')}
+                  >
+                    <option value="">No organization</option>
+                    {organizations.map((organization) => (
+                      <option key={organization._id} value={organization._id}>
+                        {organization.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              {isSubmitting ? 'Creating account...' : 'Create account'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-xs text-slate-400">
+            Already have an account?{' '}
+            <Link to="/login" className="font-medium text-brand-700 hover:underline">
+              Sign in
+            </Link>
+          </p>
+          <p className="mt-4 text-center text-xs">
+            <Link to="/" className="text-brand-700 hover:underline">
+              Back to home
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

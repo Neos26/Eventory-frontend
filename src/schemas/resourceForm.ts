@@ -1,4 +1,4 @@
-import type { ResourcePayload, ResourceRecord, ResourceCategory } from '../api/resources';
+import type { ResourcePayload, ResourceRecord, ResourceCategory } from '../api/resourceApi';
 
 // Shape of the create/edit resource form. Quantities are kept as strings so
 // the inputs stay controlled while the user types.

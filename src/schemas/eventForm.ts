@@ -1,5 +1,5 @@
-import type { EventPayload, EventRecord, EventStatus } from '../api/events';
-import { refId } from '../api/events';
+import type { EventPayload, EventRecord, EventStatus } from '../api/eventApi';
+import { refId } from '../api/eventApi';
 import { toInputDate, toInputTime } from '../utils/format';
 
 // Shape of the create/edit form. The backend stores a single ISO start and

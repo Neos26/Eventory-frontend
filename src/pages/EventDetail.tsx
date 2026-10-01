@@ -18,8 +18,8 @@ import {
   getErrorMessage,
   isNotFound,
   resolveName,
-} from '../api/events';
-import type { EventRecord, EventStatus, OrganizationRecord, VenueRecord } from '../api/events';
+} from '../api/eventApi';
+import type { EventRecord, EventStatus, OrganizationRecord, VenueRecord } from '../api/eventApi';
 import { formatDate, formatTime } from '../utils/format';
 
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
@@ -139,13 +139,16 @@ export default function EventDetail() {
         actions={
           <>
             <Button variant="secondary" onClick={() => navigate(`/events/${event._id}/edit`)}>
-              Edit
+              Edit Event
             </Button>
             <Button variant="secondary" onClick={() => navigate(`/events/${event._id}/requirements`)}>
               Requirements
             </Button>
             <Button variant="secondary" onClick={() => navigate(`/events/${event._id}/readiness`)}>
-              Readiness
+              Check Readiness
+            </Button>
+            <Button variant="secondary" onClick={() => navigate(`/events/${event._id}/conflicts`)}>
+              View Conflicts
             </Button>
             <Button
               variant="danger"

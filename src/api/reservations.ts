@@ -1,5 +1,5 @@
 import api from './client';
-import type { RefWithName } from './events';
+import type { RefWithName } from './eventApi';
 
 // ---------- Types (mirror the backend ResourceReservation model) ----------
 //

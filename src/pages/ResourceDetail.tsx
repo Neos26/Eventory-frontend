@@ -9,9 +9,9 @@ import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import EmptyState from '../components/EmptyState';
 import useDocumentTitle from '../hooks/useDocumentTitle';
-import { fetchResource, fetchResourceAvailability, resourceStatus } from '../api/resources';
-import type { ResourceAvailability, ResourceRecord } from '../api/resources';
-import { getErrorMessage, isNotFound } from '../api/events';
+import { fetchResource, fetchResourceAvailability, resourceStatus } from '../api/resourceApi';
+import type { ResourceAvailability, ResourceRecord } from '../api/resourceApi';
+import { getErrorMessage, isNotFound } from '../api/eventApi';
 import { resourceCategoryLabel } from '../schemas/resourceForm';
 
 interface FieldProps {

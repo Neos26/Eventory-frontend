@@ -13,10 +13,10 @@ export default function NavItem({ to, label, onClick }: NavItemProps) {
       to={to}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+        `flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
           isActive
-            ? 'bg-brand-600 text-white'
-            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            ? 'bg-brand-700 text-white'
+            : 'text-brand-100 hover:bg-brand-900 hover:text-white'
         }`
       }
     >
