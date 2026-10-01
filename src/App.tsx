@@ -10,6 +10,7 @@ import EventEdit from './pages/EventEdit';
 import EventRequirements from './pages/EventRequirements';
 import EventReadiness from './pages/EventReadiness';
 import Resources from './pages/Resources';
+import ResourceDetail from './pages/ResourceDetail';
 import Reservations from './pages/Reservations';
 import Conflicts from './pages/Conflicts';
 import Organizations from './pages/Organizations';
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/events/:id/requirements" element={<EventRequirements />} />
         <Route path="/events/:id/readiness" element={<EventReadiness />} />
         <Route path="/resources" element={<Resources />} />
+        <Route path="/resources/:id" element={<ResourceDetail />} />
         <Route path="/reservations" element={<Reservations />} />
         <Route path="/conflicts" element={<Conflicts />} />
         <Route path="/organizations" element={<Organizations />} />
