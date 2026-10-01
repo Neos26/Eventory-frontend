@@ -21,6 +21,8 @@ import {
   resolveName,
 } from '../api/eventApi';
 import type { EventRecord, EventStatus, OrganizationRecord, VenueRecord } from '../api/eventApi';
+import { fetchBookings } from '../api/bookingApi';
+import type { BookingRecord } from '../api/bookingApi';
 import { formatDate, formatTime } from '../utils/format';
 
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
@@ -47,6 +49,7 @@ export default function Events() {
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [organizations, setOrganizations] = useState<OrganizationRecord[]>([]);
   const [venues, setVenues] = useState<VenueRecord[]>([]);
+  const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,14 +64,16 @@ export default function Events() {
     setLoading(true);
     setError(null);
     try {
-      const [eventList, organizationList, venueList] = await Promise.all([
+      const [eventList, organizationList, venueList, bookingList] = await Promise.all([
         fetchEvents(),
         fetchOrganizations(),
         fetchVenues(),
+        fetchBookings().catch(() => [] as BookingRecord[]),
       ]);
       setEvents(eventList);
       setOrganizations(organizationList);
       setVenues(venueList);
+      setBookings(bookingList);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -88,6 +93,17 @@ export default function Events() {
     () => new Map(venues.map((venue) => [venue._id, venue.name])),
     [venues],
   );
+  // Event id -> booker name, resolved from the populated booking records.
+  const bookerByEvent = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const booking of bookings) {
+      if (typeof booking.eventId === 'string' || typeof booking.bookerId === 'string') continue;
+      if (!map.has(booking.eventId._id)) {
+        map.set(booking.eventId._id, booking.bookerId.name);
+      }
+    }
+    return map;
+  }, [bookings]);
 
   const filteredEvents = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -98,12 +114,13 @@ export default function Events() {
         event.name,
         resolveName(event.organization, orgNames),
         resolveName(event.venue, venueNames, 'Unassigned'),
+        bookerByEvent.get(event._id) ?? '',
       ]
         .join(' ')
         .toLowerCase();
       return haystack.includes(search);
     });
-  }, [events, query, statusFilter, orgNames, venueNames]);
+  }, [events, query, statusFilter, orgNames, venueNames, bookerByEvent]);
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -132,13 +149,27 @@ export default function Events() {
       render: (row) => resolveName(row.organization, orgNames),
     },
     {
+      key: 'booker',
+      header: 'Booker',
+      render: (row) => bookerByEvent.get(row._id) ?? <span className="text-slate-400">—</span>,
+    },
+    {
+      key: 'date',
+      header: 'Date',
+      render: (row) => (
+        <div className="text-xs leading-5">
+          <p className="text-slate-700">{formatDate(row.startDate)}</p>
+          <p className="text-slate-500">
+            {formatTime(row.startDate)} - {formatTime(row.endDate)}
+          </p>
+        </div>
+      ),
+    },
+    {
       key: 'venue',
       header: 'Venue',
       render: (row) => resolveName(row.venue, venueNames, 'Unassigned'),
     },
-    { key: 'date', header: 'Date', render: (row) => formatDate(row.startDate) },
-    { key: 'start', header: 'Start time', render: (row) => formatTime(row.startDate) },
-    { key: 'end', header: 'End time', render: (row) => formatTime(row.endDate) },
     {
       key: 'status',
       header: 'Status',
@@ -149,10 +180,10 @@ export default function Events() {
       header: 'Actions',
       render: (row) => (
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/events/${row._id}`)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/management/events/${row._id}`)}>
             View
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/events/${row._id}/edit`)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/management/events/${row._id}/edit`)}>
             Edit
           </Button>
           <Button
@@ -177,7 +208,7 @@ export default function Events() {
         title="Events"
         description="All events with their status, dates and venue."
         actions={
-          <Button onClick={() => navigate('/events/create')}>New Event</Button>
+          <Button onClick={() => navigate('/management/events/create')}>New Event</Button>
         }
       />
 
@@ -212,7 +243,7 @@ export default function Events() {
             <EmptyState
               title="No events yet"
               description="Create your first event to start planning."
-              action={<Button onClick={() => navigate('/events/create')}>Create event</Button>}
+              action={<Button onClick={() => navigate('/management/events/create')}>Create event</Button>}
             />
           ) : filteredEvents.length === 0 ? (
             <EmptyState

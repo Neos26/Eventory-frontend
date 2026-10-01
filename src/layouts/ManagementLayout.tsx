@@ -2,39 +2,28 @@ import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, LayoutDashboard, LogOut, Menu } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
-import type { NavSection } from '../components/Sidebar';
 import Logo from '../components/Logo';
 import { homeForRole, useAuth } from '../context/AuthContext';
 
-const bookerSections: NavSection[] = [
-  {
-    title: 'Overview',
-    items: [{ to: '/booker/dashboard', label: 'Dashboard', end: true }],
-  },
-  {
-    title: 'Events',
-    items: [
-      // Create Event takes over the highlight on its route, so it must be
-      // carved out of the parent "My Events" item.
-      { to: '/booker/events', label: 'My Events', exclude: ['/booker/events/create'] },
-      { to: '/booker/events/create', label: 'Create Event', end: true },
-    ],
-  },
-  {
-    title: 'Bookings',
-    items: [{ to: '/booker/bookings', label: 'My Bookings', end: true }],
-  },
-];
-
-// Header title for the current booker route.
+// Header title for the current management route.
 function titleFor(pathname: string): string {
-  if (pathname === '/booker/dashboard') return 'Dashboard';
-  if (pathname === '/booker/events') return 'My Events';
-  if (pathname === '/booker/events/create') return 'Create Event';
-  if (/\/booker\/events\/[^/]+\/edit$/.test(pathname)) return 'Edit Event';
-  if (/\/booker\/events\/[^/]+\/requirements$/.test(pathname)) return 'Resource Requirements';
-  if (/\/booker\/events\/[^/]+$/.test(pathname)) return 'Event Details';
-  if (pathname === '/booker/bookings') return 'My Bookings';
+  if (pathname === '/management/dashboard') return 'Dashboard';
+  if (/^\/management\/bookings\/[^/]+$/.test(pathname)) return 'Booking Review';
+  if (pathname === '/management/bookings') return 'Booking Requests';
+  if (pathname === '/management/events') return 'Events';
+  if (pathname === '/management/events/create') return 'Create Event';
+  if (/^\/management\/events\/[^/]+\/edit$/.test(pathname)) return 'Edit Event';
+  if (/^\/management\/events\/[^/]+\/requirements$/.test(pathname)) return 'Event Requirements';
+  if (/^\/management\/events\/[^/]+\/readiness$/.test(pathname)) return 'Event Readiness';
+  if (/^\/management\/events\/[^/]+\/conflicts$/.test(pathname)) return 'Event Conflicts';
+  if (/^\/management\/events\/[^/]+$/.test(pathname)) return 'Event Details';
+  if (/^\/management\/resources\/[^/]+$/.test(pathname)) return 'Resource Details';
+  if (pathname === '/management/resources') return 'Resources';
+  if (pathname === '/management/reservations') return 'Reservations';
+  if (pathname === '/management/venues') return 'Venues';
+  if (pathname === '/management/conflicts') return 'Conflicts';
+  if (pathname === '/management/analytics') return 'Analytics';
+  if (pathname === '/management/organizations') return 'Organizations';
   return 'Eventory';
 }
 
@@ -47,8 +36,9 @@ function initials(name: string): string {
     .join('');
 }
 
-// Booker application shell: sidebar + header with page title and user menu.
-export default function BookerLayout() {
+// Management application shell: sidebar + header with page title and user
+// menu. Visually matches the booker side so the product feels like one app.
+export default function ManagementLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, logout } = useAuth();
@@ -62,11 +52,7 @@ export default function BookerLayout() {
 
   return (
     <div className="min-h-screen">
-      <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        sections={bookerSections}
-      />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-brand-500 before:via-emerald-400 before:to-transparent sm:px-6 lg:px-8">
@@ -88,7 +74,6 @@ export default function BookerLayout() {
           </h1>
 
           <div className="ml-auto flex items-center gap-3">
-            {/* User menu */}
             <div className="relative">
               <button
                 type="button"

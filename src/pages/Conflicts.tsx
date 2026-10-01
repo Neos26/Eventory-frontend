@@ -37,12 +37,6 @@ interface ConflictItem {
   date: string;
 }
 
-const kindTones: Record<ConflictKind, 'red' | 'amber' | 'indigo'> = {
-  venue: 'red',
-  schedule: 'amber',
-  resource: 'indigo',
-};
-
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
   draft: 'gray',
   planned: 'indigo',
@@ -56,6 +50,13 @@ const filterOptions = [
   { value: 'venue', label: 'Venue conflicts' },
   { value: 'schedule', label: 'Schedule conflicts' },
   { value: 'resource', label: 'Resource conflicts' },
+];
+
+// Sections shown when filtering is set to "all".
+const groupMeta: { kind: ConflictKind; label: string; tone: 'red' | 'amber' | 'indigo'; blurb: string }[] = [
+  { kind: 'venue', label: 'Venue Overlaps', tone: 'red', blurb: 'Two events want the same venue at the same time.' },
+  { kind: 'schedule', label: 'Schedule Overlaps', tone: 'amber', blurb: 'Events in the same organization overlap in time.' },
+  { kind: 'resource', label: 'Resource Shortages', tone: 'indigo', blurb: 'Not enough stock to cover requested quantities.' },
 ];
 
 // Turn the per-event conflict responses into one deduplicated list.
@@ -209,11 +210,8 @@ export default function Conflicts() {
             </Badge>
           </div>
           <p className="mt-1 text-sm text-slate-600">
-            Required: <span className="font-medium">{conflict.required}</span>
-            <span className="mx-2 text-slate-300">|</span>
-            Available: <span className="font-medium">{conflict.available}</span>
-            <span className="mx-2 text-slate-300">|</span>
-            Shortage:{' '}
+            Only <span className="font-semibold text-red-600">{conflict.available}</span> of{' '}
+            <span className="font-medium">{conflict.required}</span> available — short by{' '}
             <span className="font-semibold text-red-600">{conflict.shortage}</span>
           </p>
           <p className="mt-1 text-xs text-slate-400">
@@ -233,8 +231,8 @@ export default function Conflicts() {
             </Badge>
           </div>
           <p className="mt-1 text-sm text-slate-600">
-            {formatDate(conflict.otherEvent!.startDate)} · {formatTime(conflict.otherEvent!.startDate)}{' '}
-            - {formatTime(conflict.otherEvent!.endDate)}
+            Double-booked on {formatDate(conflict.otherEvent!.startDate)} ·{' '}
+            {formatTime(conflict.otherEvent!.startDate)} - {formatTime(conflict.otherEvent!.endDate)}
           </p>
           <p className="mt-1 text-xs text-slate-400">
             {conflict.primaryEvent.name} overlaps with {conflict.otherEvent!.name}
@@ -262,6 +260,20 @@ export default function Conflicts() {
     );
   };
 
+  // Counts per conflict kind (unfiltered, for the summary row).
+  const kindCounts = useMemo(() => {
+    const counts: Record<ConflictKind, number> = { venue: 0, schedule: 0, resource: 0 };
+    for (const conflict of conflicts) counts[conflict.kind] += 1;
+    return counts;
+  }, [conflicts]);
+
+  // Grouped sections — venue overlaps, schedule overlaps, resource shortages.
+  const grouped = useMemo(() => {
+    const groups: Record<ConflictKind, ConflictItem[]> = { venue: [], schedule: [], resource: [] };
+    for (const conflict of filteredConflicts) groups[conflict.kind].push(conflict);
+    return groups;
+  }, [filteredConflicts]);
+
   if (loading) {
     return <LoadingState message="Scanning events for conflicts..." />;
   }
@@ -276,7 +288,7 @@ export default function Conflicts() {
         title="Conflicts"
         description="Double-bookings and shortages across events."
         actions={
-          <Button variant="secondary" onClick={() => navigate('/events')}>
+          <Button variant="secondary" onClick={() => navigate('/management/events')}>
             View events
           </Button>
         }
@@ -293,6 +305,26 @@ export default function Conflicts() {
           />
         </div>
       </div>
+
+      {/* Conflict summary */}
+      {conflicts.length > 0 && (
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {groupMeta.map((group) => (
+            <div
+              key={group.kind}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+            >
+              <div className="flex items-center gap-2">
+                <Badge tone={group.tone}>{group.label}</Badge>
+              </div>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">
+                {kindCounts[group.kind]}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">{group.blurb}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {conflicts.length === 0 ? (
         <EmptyState
@@ -316,16 +348,38 @@ export default function Conflicts() {
           }
         />
       ) : (
-        <div className="space-y-3">
-          {filteredConflicts.map((conflict) => (
-            <div
-              key={conflict.id}
-              className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm"
-            >
-              <Badge tone={kindTones[conflict.kind]}>{conflict.kind}</Badge>
-              <div className="min-w-0 flex-1">{renderConflict(conflict)}</div>
-            </div>
-          ))}
+        <div className="space-y-6">
+          {groupMeta
+            .filter((group) => kindFilter === 'all' || kindFilter === group.kind)
+            .filter((group) => grouped[group.kind].length > 0)
+            .map((group) => (
+              <section key={group.kind}>
+                <div className="mb-2 flex items-center gap-2">
+                  <Badge tone={group.tone}>{group.label}</Badge>
+                  <span className="text-xs text-slate-500">
+                    {grouped[group.kind].length} conflict
+                    {grouped[group.kind].length === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {grouped[group.kind].map((conflict) => (
+                    <div
+                      key={conflict.id}
+                      className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm"
+                    >
+                      <div className="min-w-0 flex-1">{renderConflict(conflict)}</div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/management/events/${conflict.primaryEvent.id}`)}
+                      >
+                        Review
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
         </div>
       )}
     </>

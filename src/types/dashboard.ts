@@ -29,3 +29,25 @@ export interface BookerDashboard {
   rejectedBookings: number;
   recentActivity: DashboardActivity[];
 }
+
+// GET /api/dashboard/management - system-wide counts, conflicts and
+// resource utilization for the management overview.
+export interface ManagementDashboardResource {
+  _id: string;
+  name: string;
+  utilization: number; // percent 0-100
+}
+
+export interface ManagementDashboard {
+  totalEvents: number;
+  pendingRequests: number;
+  approvedEvents: number;
+  upcomingEvents: number;
+  totalResources: number;
+  totalVenues: number;
+  activeConflicts: number;
+  resourceUtilization: {
+    average: number;
+    resources: ManagementDashboardResource[];
+  };
+}

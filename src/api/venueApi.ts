@@ -1,12 +1,24 @@
 import api from './client';
-import type { VenueAvailability, VenueRecord } from '../types/venue';
+import type { VenueAvailability, VenuePayload, VenueRecord } from '../types/venue';
 
 const unwrap = <T>(response: { data: { data: T } }): T => response.data.data;
 
-export type { VenueRecord, VenueAvailability } from '../types/venue';
+export type { VenueRecord, VenueAvailability, VenuePayload } from '../types/venue';
 
 // GET /api/venues
 export const fetchVenues = async (): Promise<VenueRecord[]> => unwrap(await api.get('/venues'));
+
+// POST /api/venues
+export const createVenue = async (payload: VenuePayload): Promise<VenueRecord> =>
+  unwrap(await api.post('/venues', payload));
+
+// PUT /api/venues/:id (partial update)
+export const updateVenue = async (id: string, payload: VenuePayload): Promise<VenueRecord> =>
+  unwrap(await api.put(`/venues/${id}`, payload));
+
+// DELETE /api/venues/:id
+export const deleteVenue = async (id: string): Promise<VenueRecord> =>
+  unwrap(await api.delete(`/venues/${id}`));
 
 // GET /api/venues/:id/availability?date=YYYY-MM-DD (or ?start=&end=)
 // Lets the booker pick a venue that is actually free on the event date.

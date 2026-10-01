@@ -51,7 +51,7 @@ export default function EventCreate() {
     setSubmitError(null);
     try {
       const created = await createEvent(payload);
-      navigate(`/events/${created._id}`);
+      navigate(`/management/events/${created._id}`);
     } catch (requestError) {
       setSubmitError(getErrorMessage(requestError));
       setSubmitting(false);
@@ -78,7 +78,7 @@ export default function EventCreate() {
             submitting={submitting}
             error={submitError}
             onSubmit={(payload) => void handleSubmit(payload)}
-            onCancel={() => navigate('/events')}
+            onCancel={() => navigate('/management/events')}
           />
         )}
       </Card>

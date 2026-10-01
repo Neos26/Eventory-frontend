@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 // Where each role lands after signing in (and when hitting "/").
 export function homeForRole(role: UserRole): string {
-  return role === 'booker' ? '/booker/dashboard' : '/dashboard';
+  return role === 'booker' ? '/booker/dashboard' : '/management/dashboard';
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

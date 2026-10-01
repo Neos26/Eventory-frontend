@@ -96,7 +96,7 @@ export default function EventDetail() {
     setDeleteError(null);
     try {
       await deleteEvent(id);
-      navigate('/events');
+      navigate('/management/events');
     } catch (requestError) {
       setDeleteError(getErrorMessage(requestError));
       setDeleting(false);
@@ -114,7 +114,7 @@ export default function EventDetail() {
         <EmptyState
           title="Event not found"
           description="This event may have been deleted."
-          action={<Button onClick={() => navigate('/events')}>Back to events</Button>}
+          action={<Button onClick={() => navigate('/management/events')}>Back to events</Button>}
         />
       </>
     );
@@ -138,16 +138,16 @@ export default function EventDetail() {
         title={event.name}
         actions={
           <>
-            <Button variant="secondary" onClick={() => navigate(`/events/${event._id}/edit`)}>
+            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/edit`)}>
               Edit Event
             </Button>
-            <Button variant="secondary" onClick={() => navigate(`/events/${event._id}/requirements`)}>
+            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/requirements`)}>
               Requirements
             </Button>
-            <Button variant="secondary" onClick={() => navigate(`/events/${event._id}/readiness`)}>
+            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/readiness`)}>
               Check Readiness
             </Button>
-            <Button variant="secondary" onClick={() => navigate(`/events/${event._id}/conflicts`)}>
+            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/conflicts`)}>
               View Conflicts
             </Button>
             <Button

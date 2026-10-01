@@ -1,5 +1,6 @@
+import { isAxiosError } from 'axios';
 import api from './client';
-import type { BookingPayload, BookingRecord, BookingStatus } from '../types/booking';
+import type { BookingConflict, BookingPayload, BookingRecord, BookingStatus } from '../types/booking';
 import type { BookingEventRef } from '../types/booking';
 
 const unwrap = <T>(response: { data: { data: T } }): T => response.data.data;
@@ -23,6 +24,25 @@ export const createBooking = async (payload: BookingPayload): Promise<BookingRec
 // PUT /api/bookings/:id/cancel - only Pending bookings can be cancelled.
 export const cancelBooking = async (id: string): Promise<BookingRecord> =>
   unwrap(await api.put(`/bookings/${id}/cancel`, {}));
+
+// PUT /api/bookings/:id/approve - verifies venue/resources, creates
+// reservations and sets Approved. Conflicts answer with 409.
+export const approveBooking = async (id: string): Promise<BookingRecord> =>
+  unwrap(await api.put(`/bookings/${id}/approve`, {}));
+
+// PUT /api/bookings/:id/reject - requires a non-empty rejection reason.
+export const rejectBooking = async (id: string, rejectionReason: string): Promise<BookingRecord> =>
+  unwrap(await api.put(`/bookings/${id}/reject`, { rejectionReason }));
+
+// Reads the conflict list out of a 409 approve response so the review page
+// can show exactly what blocked the approval.
+export function approvalConflictsOf(error: unknown): BookingConflict[] | null {
+  if (isAxiosError(error) && error.response?.status === 409) {
+    const data = error.response.data as { conflicts?: BookingConflict[] } | undefined;
+    if (data && Array.isArray(data.conflicts)) return data.conflicts;
+  }
+  return null;
+}
 
 // Bookings store a populated event; this reads it from either shape.
 export function bookingEvent(booking: BookingRecord): BookingEventRef | null {

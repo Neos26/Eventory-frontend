@@ -98,21 +98,30 @@ export default function Register() {
   return (
     <div className="flex min-h-screen">
       {/* Brand panel - hidden on small screens */}
-      <div className="hidden w-1/2 flex-col justify-between bg-brand-950 p-10 text-white lg:flex">
-        <Logo className="text-white" />
-        <div>
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-900 via-brand-950 to-[#011a13] p-10 text-white lg:flex">
+        <div
+          className="pointer-events-none absolute -left-20 -top-24 h-80 w-80 rounded-full bg-brand-400/25 blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-emerald-500/15 blur-3xl"
+          aria-hidden="true"
+        />
+        <Logo className="relative text-white" />
+        <div className="relative">
           <h1 className="text-4xl font-bold leading-tight">
             Join Eventory.
             <br />
             Create events.
             <br />
-            <span className="text-brand-300">Stay conflict-free.</span>
+            <span className="bg-gradient-to-r from-brand-300 to-emerald-200 bg-clip-text text-transparent">
+              Stay conflict-free.
+            </span>
           </h1>
           <p className="mt-4 max-w-md text-sm text-brand-100/80">
             One account to plan events, request resources and follow every booking to approval.
           </p>
         </div>
-        <p className="text-xs text-brand-300">Eventory — Event Resource Management System</p>
       </div>
 
       {/* Sign-up card */}
@@ -288,7 +297,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-800 to-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-950/20 transition-colors hover:from-brand-900 hover:to-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
               {isSubmitting ? 'Creating account...' : 'Create account'}

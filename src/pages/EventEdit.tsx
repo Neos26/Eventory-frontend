@@ -68,7 +68,7 @@ export default function EventEdit() {
     setSubmitError(null);
     try {
       await updateEvent(id, payload);
-      navigate(`/events/${id}`);
+      navigate(`/management/events/${id}`);
     } catch (requestError) {
       setSubmitError(getErrorMessage(requestError));
       setSubmitting(false);
@@ -86,7 +86,7 @@ export default function EventEdit() {
         <EmptyState
           title="Event not found"
           description="This event may have been deleted."
-          action={<Button onClick={() => navigate('/events')}>Back to events</Button>}
+          action={<Button onClick={() => navigate('/management/events')}>Back to events</Button>}
         />
       </>
     );
@@ -114,7 +114,7 @@ export default function EventEdit() {
           submitting={submitting}
           error={submitError}
           onSubmit={(payload) => void handleSubmit(payload)}
-          onCancel={() => navigate(`/events/${event._id}`)}
+          onCancel={() => navigate(`/management/events/${event._id}`)}
         />
       </Card>
     </>

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
+import ManagementLayout from './layouts/ManagementLayout';
 import BookerLayout from './layouts/BookerLayout';
 import RequireAuth from './components/RequireAuth';
 
@@ -21,6 +21,8 @@ import Conflicts from './pages/Conflicts';
 import Organizations from './pages/Organizations';
 import Venues from './pages/Venues';
 import Analytics from './pages/Analytics';
+import Bookings from './pages/Bookings';
+import BookingReview from './pages/BookingReview';
 import NotFound from './pages/NotFound';
 
 import BookerDashboard from './pages/booker/BookerDashboard';
@@ -55,30 +57,41 @@ export default function App() {
         <Route path="/booker/bookings" element={<BookerBookings />} />
       </Route>
 
+      {/* Legacy short paths → management area */}
+      <Route path="/dashboard" element={<Navigate to="/management/dashboard" replace />} />
+      <Route path="/events" element={<Navigate to="/management/events" replace />} />
+      <Route path="/resources" element={<Navigate to="/management/resources" replace />} />
+      <Route path="/reservations" element={<Navigate to="/management/reservations" replace />} />
+      <Route path="/conflicts" element={<Navigate to="/management/conflicts" replace />} />
+      <Route path="/organizations" element={<Navigate to="/management/organizations" replace />} />
+      <Route path="/venues" element={<Navigate to="/management/venues" replace />} />
+      <Route path="/analytics" element={<Navigate to="/management/analytics" replace />} />
+
       {/* Management area - management role only (bookers are bounced out) */}
-      <Route path="/management/dashboard" element={<Navigate to="/dashboard" replace />} />
       <Route
         element={
           <RequireAuth role="management">
-            <MainLayout />
+            <ManagementLayout />
           </RequireAuth>
         }
       >
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/events/create" element={<EventCreate />} />
-        <Route path="/events/:id" element={<EventDetail />} />
-        <Route path="/events/:id/edit" element={<EventEdit />} />
-        <Route path="/events/:id/requirements" element={<EventRequirements />} />
-        <Route path="/events/:id/readiness" element={<EventReadiness />} />
-        <Route path="/events/:id/conflicts" element={<EventConflicts />} />
-        <Route path="/resources" element={<Resources />} />
-        <Route path="/resources/:id" element={<ResourceDetail />} />
-        <Route path="/reservations" element={<Reservations />} />
-        <Route path="/conflicts" element={<Conflicts />} />
-        <Route path="/organizations" element={<Organizations />} />
-        <Route path="/venues" element={<Venues />} />
-        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/management/dashboard" element={<Dashboard />} />
+        <Route path="/management/bookings" element={<Bookings />} />
+        <Route path="/management/bookings/:id" element={<BookingReview />} />
+        <Route path="/management/events" element={<Events />} />
+        <Route path="/management/events/create" element={<EventCreate />} />
+        <Route path="/management/events/:id" element={<EventDetail />} />
+        <Route path="/management/events/:id/edit" element={<EventEdit />} />
+        <Route path="/management/events/:id/requirements" element={<EventRequirements />} />
+        <Route path="/management/events/:id/readiness" element={<EventReadiness />} />
+        <Route path="/management/events/:id/conflicts" element={<EventConflicts />} />
+        <Route path="/management/resources" element={<Resources />} />
+        <Route path="/management/resources/:id" element={<ResourceDetail />} />
+        <Route path="/management/reservations" element={<Reservations />} />
+        <Route path="/management/conflicts" element={<Conflicts />} />
+        <Route path="/management/organizations" element={<Organizations />} />
+        <Route path="/management/venues" element={<Venues />} />
+        <Route path="/management/analytics" element={<Analytics />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

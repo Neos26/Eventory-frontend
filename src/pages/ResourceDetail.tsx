@@ -106,7 +106,7 @@ export default function ResourceDetail() {
         <EmptyState
           title="Resource not found"
           description="This resource may have been deleted."
-          action={<Button onClick={() => navigate('/resources')}>Back to resources</Button>}
+          action={<Button onClick={() => navigate('/management/resources')}>Back to resources</Button>}
         />
       </>
     );
@@ -138,7 +138,7 @@ export default function ResourceDetail() {
         title={resource.name}
         description={resource.description || 'Availability and stock details.'}
         actions={
-          <Button variant="secondary" onClick={() => navigate('/resources')}>
+          <Button variant="secondary" onClick={() => navigate('/management/resources')}>
             Back to resources
           </Button>
         }

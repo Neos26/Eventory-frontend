@@ -25,6 +25,16 @@ export interface VenueRecord {
   updatedAt?: string;
 }
 
+// Create/update payload (POST /api/venues, PUT /api/venues/:id).
+export interface VenuePayload {
+  name?: string;
+  capacity?: number;
+  venueType?: VenueType;
+  address?: VenueAddress;
+  contactPhone?: string;
+  isActive?: boolean;
+}
+
 // GET /api/venues/:id/availability?start=...&end=... (or ?date=...)
 export interface VenueAvailability {
   venue: { id: string; name: string; capacity: number; isActive: boolean };

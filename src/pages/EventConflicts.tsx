@@ -70,7 +70,7 @@ export default function EventConflicts() {
         <EmptyState
           title="Event not found"
           description="This event may have been deleted."
-          action={<Button onClick={() => navigate('/events')}>Back to events</Button>}
+          action={<Button onClick={() => navigate('/management/events')}>Back to events</Button>}
         />
       </>
     );
@@ -121,11 +121,11 @@ export default function EventConflicts() {
           <>
             <Button
               variant="secondary"
-              onClick={() => navigate(`/events/${event._id}/readiness`)}
+              onClick={() => navigate(`/management/events/${event._id}/readiness`)}
             >
               Check Readiness
             </Button>
-            <Button variant="secondary" onClick={() => navigate(`/events/${event._id}`)}>
+            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}`)}>
               Back to event
             </Button>
           </>

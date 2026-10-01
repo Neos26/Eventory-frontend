@@ -195,7 +195,7 @@ export default function Reservations() {
         return eventId ? (
           <button
             type="button"
-            onClick={() => navigate(`/events/${eventId}`)}
+            onClick={() => navigate(`/management/events/${eventId}`)}
             className="font-medium text-slate-900 hover:text-brand-700 hover:underline"
           >
             {label}
