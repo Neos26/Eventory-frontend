@@ -294,11 +294,11 @@ export default function EventRequirements() {
       header: 'Actions',
       render: (row) => (
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(row)}>
             Edit
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             className="text-red-600 hover:bg-red-50"
             onClick={() => {

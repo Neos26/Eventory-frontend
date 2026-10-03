@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, LayoutDashboard, LogOut, Menu } from 'lucide-react';
+import {
+  CalendarDays,
+  CalendarPlus,
+  ChevronDown,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+} from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import type { NavSection } from '../components/Sidebar';
 import Logo from '../components/Logo';
@@ -9,20 +17,25 @@ import { homeForRole, useAuth } from '../context/AuthContext';
 const bookerSections: NavSection[] = [
   {
     title: 'Overview',
-    items: [{ to: '/booker/dashboard', label: 'Dashboard', end: true }],
+    items: [{ to: '/booker/dashboard', label: 'Dashboard', end: true, icon: LayoutDashboard }],
   },
   {
     title: 'Events',
     items: [
       // Create Event takes over the highlight on its route, so it must be
       // carved out of the parent "My Events" item.
-      { to: '/booker/events', label: 'My Events', exclude: ['/booker/events/create'] },
-      { to: '/booker/events/create', label: 'Create Event', end: true },
+      {
+        to: '/booker/events',
+        label: 'My Events',
+        exclude: ['/booker/events/create'],
+        icon: CalendarDays,
+      },
+      { to: '/booker/events/create', label: 'Create Event', end: true, icon: CalendarPlus },
     ],
   },
   {
     title: 'Bookings',
-    items: [{ to: '/booker/bookings', label: 'My Bookings', end: true }],
+    items: [{ to: '/booker/bookings', label: 'My Bookings', end: true, icon: ClipboardList }],
   },
 ];
 
@@ -47,7 +60,9 @@ function initials(name: string): string {
     .join('');
 }
 
-// Booker application shell: sidebar + header with page title and user menu.
+// Booker application shell: light sidebar (vs management's dark rail) with a
+// header carrying the page title and user menu, so the two roles are clearly
+// distinct at a glance.
 export default function BookerLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -66,6 +81,7 @@ export default function BookerLayout() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         sections={bookerSections}
+        variant="booker"
       />
 
       <div className="lg:pl-64">

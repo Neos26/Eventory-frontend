@@ -5,6 +5,8 @@ import PageHeader from '../components/PageHeader';
 import Card from '../components/Card';
 import SearchBar from '../components/SearchBar';
 import Select from '../components/Select';
+import DateRangeFilter from '../components/DateRangeFilter';
+import FilterPanel from '../components/FilterPanel';
 import Table from '../components/Table';
 import type { TableColumn } from '../components/Table';
 import Button from '../components/Button';
@@ -13,11 +15,12 @@ import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import { BookingStatusBadge } from '../components/StatusBadges';
 import useDocumentTitle from '../hooks/useDocumentTitle';
-import { bookingEvent, fetchBookings } from '../api/bookingApi';
-import { fetchOrganizations, getErrorMessage, resolveName } from '../api/eventApi';
+import { bookingEvent, bookingEventId, fetchBookings } from '../api/bookingApi';
+import { fetchEvents, fetchOrganizations, getErrorMessage, refId, resolveName } from '../api/eventApi';
 import { fetchVenues } from '../api/venueApi';
 import type { BookingRecord, BookingStatus } from '../types/booking';
-import { formatDate } from '../utils/format';
+import type { EventRecord } from '../types/event';
+import { formatDate, withinDateRange } from '../utils/format';
 
 type StatusFilter = 'all' | BookingStatus;
 
@@ -37,20 +40,27 @@ export default function Bookings() {
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [organizations, setOrganizations] = useState<Map<string, string>>(new Map());
   const [venues, setVenues] = useState<Map<string, string>>(new Map());
+  const [events, setEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [orgFilter, setOrgFilter] = useState('all');
+  const [eventFilter, setEventFilter] = useState('all');
+  const [venueFilter, setVenueFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [bookingList, organizationList, venueList] = await Promise.all([
+      const [bookingList, organizationList, venueList, eventList] = await Promise.all([
         fetchBookings(),
         fetchOrganizations().catch(() => []),
         fetchVenues().catch(() => []),
+        fetchEvents().catch(() => []),
       ]);
       bookingList.sort(
         (a, b) =>
@@ -60,6 +70,7 @@ export default function Bookings() {
       setBookings(bookingList);
       setOrganizations(new Map(organizationList.map((org) => [org._id, org.name])));
       setVenues(new Map(venueList.map((venue) => [venue._id, venue.name])));
+      setEvents(eventList);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -82,25 +93,83 @@ export default function Bookings() {
     [venues],
   );
 
+  const eventById = useMemo(
+    () => new Map(events.map((event) => [event._id, event])),
+    [events],
+  );
+
+  const orgFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All organizations' },
+      ...[...organizations].map(([id, name]) => ({ value: id, label: name })),
+    ],
+    [organizations],
+  );
+
+  const eventFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All events' },
+      ...events.map((event) => ({ value: event._id, label: event.name })),
+    ],
+    [events],
+  );
+
+  const venueFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All venues' },
+      ...[...venues].map(([id, name]) => ({ value: id, label: name })),
+    ],
+    [venues],
+  );
+
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
     return bookings.filter((booking) => {
       if (statusFilter !== 'all' && booking.status !== statusFilter) return false;
+      const embedded = bookingEvent(booking);
+      const full = eventById.get(bookingEventId(booking));
+      if (orgFilter !== 'all' && refId(embedded?.organization ?? full?.organization) !== orgFilter) {
+        return false;
+      }
+      if (eventFilter !== 'all' && bookingEventId(booking) !== eventFilter) return false;
+      if (venueFilter !== 'all' && refId(embedded?.venue ?? full?.venue) !== venueFilter) {
+        return false;
+      }
+      if (!withinDateRange(embedded?.startDate ?? full?.startDate, dateFrom, dateTo)) return false;
       if (!search) return true;
-      const event = bookingEvent(booking);
       const bookerName =
         typeof booking.bookerId === 'string' ? '' : booking.bookerId.name.toLowerCase();
       const haystack = [
-        event?.name ?? '',
+        embedded?.name ?? '',
         bookerName,
-        event ? resolveName(event.organization, organizations) : '',
-        venueNameFor(event),
+        embedded ? resolveName(embedded.organization, organizations) : '',
+        venueNameFor(embedded),
       ]
         .join(' ')
         .toLowerCase();
       return haystack.includes(search);
     });
-  }, [bookings, query, statusFilter, organizations, venueNameFor]);
+  }, [
+    bookings,
+    query,
+    statusFilter,
+    orgFilter,
+    eventFilter,
+    venueFilter,
+    dateFrom,
+    dateTo,
+    eventById,
+    organizations,
+    venueNameFor,
+  ]);
+
+  const activeFilters =
+    (statusFilter !== 'all' ? 1 : 0) +
+    (orgFilter !== 'all' ? 1 : 0) +
+    (eventFilter !== 'all' ? 1 : 0) +
+    (venueFilter !== 'all' ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
 
   const columns: TableColumn<BookingRecord>[] = [
     {
@@ -151,7 +220,7 @@ export default function Bookings() {
       header: 'Actions',
       render: (row) => (
         <Button
-          variant="ghost"
+          variant="secondary"
           size="sm"
           className="cursor-pointer"
           onClick={() => navigate(`/management/bookings/${row._id}`)}
@@ -179,13 +248,47 @@ export default function Bookings() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          placeholder="Search by event, booker, organization or venue..."
+      <FilterPanel
+        search={
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            placeholder="Search by event, booker, organization or venue..."
+          />
+        }
+        activeCount={activeFilters}
+      >
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by organization"
+            value={orgFilter}
+            onChange={(event) => setOrgFilter(event.target.value)}
+            options={orgFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by event"
+            value={eventFilter}
+            onChange={(event) => setEventFilter(event.target.value)}
+            options={eventFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by venue"
+            value={venueFilter}
+            onChange={(event) => setVenueFilter(event.target.value)}
+            options={venueFilterOptions}
+          />
+        </div>
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
         />
-        <div className="w-full sm:w-48">
+        <div className="w-full sm:w-44">
           <Select
             aria-label="Filter by status"
             value={statusFilter}
@@ -193,7 +296,7 @@ export default function Bookings() {
             options={STATUS_OPTIONS}
           />
         </div>
-      </div>
+      </FilterPanel>
 
       {bookings.length === 0 ? (
         <Card>
@@ -206,13 +309,18 @@ export default function Bookings() {
         <Card>
           <EmptyState
             title="No matching requests"
-            description="Try a different search term or status filter."
+            description="Try a different search term or filters."
             action={
               <Button
                 variant="secondary"
                 onClick={() => {
                   setQuery('');
                   setStatusFilter('all');
+                  setOrgFilter('all');
+                  setEventFilter('all');
+                  setVenueFilter('all');
+                  setDateFrom('');
+                  setDateTo('');
                 }}
               >
                 Clear filters

@@ -4,6 +4,7 @@ import { homeForRole, useAuth } from '../context/AuthContext';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import LoadingState from '../components/LoadingState';
 import Logo from '../components/Logo';
+import SiteFooter from '../components/SiteFooter';
 
 export default function Home() {
   useDocumentTitle('Home');
@@ -21,21 +22,7 @@ export default function Home() {
   if (user) return <Navigate to={homeForRole(user.role)} replace />;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(1000px_420px_at_50%_-140px,rgba(16,185,129,0.12),transparent_70%)]">
-      {/* Soft glow orbs */}
-      <div
-        className="pointer-events-none absolute -left-40 -top-48 h-[520px] w-[520px] rounded-full bg-brand-300/25 blur-3xl"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -right-36 top-1/4 h-96 w-96 rounded-full bg-emerald-300/25 blur-3xl"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-brand-400/20 blur-3xl"
-        aria-hidden="true"
-      />
-
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[radial-gradient(1000px_420px_at_50%_-140px,rgba(16,163,127,0.10),transparent_70%)]">
       <header className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
         <Logo />
         <div className="flex items-center gap-3">
@@ -58,9 +45,9 @@ export default function Home() {
       <main className="relative mx-auto w-full max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
         {/* Centered hero */}
         <section className="pt-12 text-center sm:pt-16 lg:pt-24">
-          <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+          <h1 className="mx-auto max-w-3xl font-serif text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
             Manage your events from request to{' '}
-            <span className="bg-gradient-to-r from-brand-600 to-emerald-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent">
               approval
             </span>
             .
@@ -136,6 +123,8 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      <SiteFooter className="relative mt-auto" />
     </div>
   );
 }

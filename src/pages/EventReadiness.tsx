@@ -327,7 +327,7 @@ export default function EventReadiness() {
                   Detected conflicts
                 </h2>
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
                   onClick={() => navigate(`/management/events/${event._id}/conflicts`)}
                 >

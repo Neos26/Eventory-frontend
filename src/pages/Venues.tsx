@@ -172,14 +172,14 @@ export default function Venues() {
       header: 'Actions',
       render: (row) => (
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" onClick={() => {
+          <Button variant="secondary" size="sm" onClick={() => {
             setFormError(null);
             setEditTarget(row);
           }}>
             Edit
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             disabled={togglingId === row._id}
             className={

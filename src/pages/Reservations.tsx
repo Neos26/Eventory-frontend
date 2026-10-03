@@ -4,6 +4,8 @@ import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
 import Select from '../components/Select';
+import DateRangeFilter from '../components/DateRangeFilter';
+import FilterPanel from '../components/FilterPanel';
 import Modal from '../components/Modal';
 import Table from '../components/Table';
 import type { TableColumn } from '../components/Table';
@@ -26,12 +28,19 @@ import type {
   ReservationRecord,
   ReservationStatus,
 } from '../api/reservations';
-import { fetchEvents, getErrorMessage, refId, resolveName } from '../api/eventApi';
-import type { EventRecord } from '../api/eventApi';
+import {
+  fetchEvents,
+  fetchOrganizations,
+  fetchVenues,
+  getErrorMessage,
+  refId,
+  resolveName,
+} from '../api/eventApi';
+import type { EventRecord, OrganizationRecord, VenueRecord } from '../api/eventApi';
 import { fetchResources } from '../api/resourceApi';
 import type { ResourceRecord } from '../api/resourceApi';
 import { reservationToFormValues } from '../schemas/reservationForm';
-import { formatDate, formatTime } from '../utils/format';
+import { formatDate, formatTime, withinDateRange } from '../utils/format';
 
 const statusTones: Record<ReservationStatus, 'gray' | 'indigo' | 'amber' | 'green' | 'red'> = {
   reserved: 'indigo',
@@ -60,12 +69,18 @@ export default function Reservations() {
   const [reservations, setReservations] = useState<ReservationRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [resources, setResources] = useState<ResourceRecord[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationRecord[]>([]);
+  const [venues, setVenues] = useState<VenueRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [query, setQuery] = useState('');
   const [eventFilter, setEventFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [orgFilter, setOrgFilter] = useState('all');
+  const [venueFilter, setVenueFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ReservationRecord | null>(null);
@@ -80,14 +95,18 @@ export default function Reservations() {
     setLoading(true);
     setError(null);
     try {
-      const [reservationList, eventList, resourceList] = await Promise.all([
+      const [reservationList, eventList, resourceList, orgList, venueList] = await Promise.all([
         fetchReservations(),
         fetchEvents(),
         fetchResources(),
+        fetchOrganizations().catch(() => []),
+        fetchVenues().catch(() => []),
       ]);
       setReservations(reservationList);
       setEvents(eventList);
       setResources(resourceList);
+      setOrganizations(orgList);
+      setVenues(venueList);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -116,11 +135,40 @@ export default function Reservations() {
     [events],
   );
 
+  const eventMeta = useMemo(() => {
+    const map = new Map<string, { organization: string; venue: string }>();
+    for (const event of events) {
+      map.set(event._id, { organization: refId(event.organization), venue: refId(event.venue) });
+    }
+    return map;
+  }, [events]);
+
+  const orgFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All organizations' },
+      ...organizations.map((organization) => ({ value: organization._id, label: organization.name })),
+    ],
+    [organizations],
+  );
+
+  const venueFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All venues' },
+      ...venues.map((venue) => ({ value: venue._id, label: venue.name })),
+    ],
+    [venues],
+  );
+
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
     return reservations.filter((reservation) => {
       if (statusFilter !== 'all' && reservation.status !== statusFilter) return false;
-      if (eventFilter !== 'all' && refId(reservation.event) !== eventFilter) return false;
+      const eventId = refId(reservation.event);
+      if (eventFilter !== 'all' && eventId !== eventFilter) return false;
+      const meta = eventMeta.get(eventId);
+      if (orgFilter !== 'all' && meta?.organization !== orgFilter) return false;
+      if (venueFilter !== 'all' && meta?.venue !== venueFilter) return false;
+      if (!withinDateRange(reservation.reservedFrom, dateFrom, dateTo)) return false;
       if (!search) return true;
       const haystack = [
         resolveName(reservation.event, eventNames),
@@ -131,7 +179,27 @@ export default function Reservations() {
         .toLowerCase();
       return haystack.includes(search);
     });
-  }, [reservations, query, eventFilter, statusFilter, eventNames, resourceNames]);
+  }, [
+    reservations,
+    query,
+    eventFilter,
+    statusFilter,
+    orgFilter,
+    venueFilter,
+    dateFrom,
+    dateTo,
+    eventMeta,
+    eventNames,
+    resourceNames,
+  ]);
+
+  const activeFilters =
+    (statusFilter !== 'all' ? 1 : 0) +
+    (eventFilter !== 'all' ? 1 : 0) +
+    (orgFilter !== 'all' ? 1 : 0) +
+    (venueFilter !== 'all' ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
 
   const openCreate = () => {
     setFormError(null);
@@ -229,12 +297,12 @@ export default function Reservations() {
         if (row.status === 'reserved' || row.status === 'issued') {
           return (
             <div className="flex gap-1">
-              <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+              <Button variant="secondary" size="sm" onClick={() => openEdit(row)}>
                 Edit
               </Button>
               {row.status === 'reserved' ? (
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
                   className="text-red-600 hover:bg-red-50"
                   onClick={() => {
@@ -246,7 +314,7 @@ export default function Reservations() {
                 </Button>
               ) : (
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
                   className="text-red-600 hover:bg-red-50"
                   onClick={() => {
@@ -269,6 +337,10 @@ export default function Reservations() {
     setQuery('');
     setEventFilter('all');
     setStatusFilter('all');
+    setOrgFilter('all');
+    setVenueFilter('all');
+    setDateFrom('');
+    setDateTo('');
   };
 
   const closeForm = () => {
@@ -284,8 +356,18 @@ export default function Reservations() {
         actions={<Button onClick={openCreate}>New Reservation</Button>}
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <SearchBar value={query} onChange={setQuery} placeholder="Search reservations..." />
+      <FilterPanel
+        search={<SearchBar value={query} onChange={setQuery} placeholder="Search reservations..." />}
+        activeCount={activeFilters}
+      >
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by organization"
+            value={orgFilter}
+            onChange={(event) => setOrgFilter(event.target.value)}
+            options={orgFilterOptions}
+          />
+        </div>
         <div className="w-full sm:w-56">
           <Select
             aria-label="Filter by event"
@@ -294,6 +376,20 @@ export default function Reservations() {
             options={eventFilterOptions}
           />
         </div>
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by venue"
+            value={venueFilter}
+            onChange={(event) => setVenueFilter(event.target.value)}
+            options={venueFilterOptions}
+          />
+        </div>
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
+        />
         <div className="w-full sm:w-48">
           <Select
             aria-label="Filter by status"
@@ -302,7 +398,7 @@ export default function Reservations() {
             options={statusOptions}
           />
         </div>
-      </div>
+      </FilterPanel>
 
       {loading ? (
         <LoadingState message="Loading reservations..." />
@@ -324,7 +420,7 @@ export default function Reservations() {
           ) : filtered.length === 0 ? (
             <EmptyState
               title="No matching reservations"
-              description="Try a different search term, event or status filter."
+              description="Try a different search term or filters."
               action={
                 <Button variant="secondary" onClick={clearFilters}>
                   Clear filters

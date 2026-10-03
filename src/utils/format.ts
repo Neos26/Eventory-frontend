@@ -32,3 +32,14 @@ export function toInputTime(iso: string): string {
   if (!date) return '';
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+// True when an ISO timestamp falls inside the local "YYYY-MM-DD" range
+// (an empty bound leaves that side open).
+export function withinDateRange(iso: string | null | undefined, from: string, to: string): boolean {
+  if (!from && !to) return true;
+  const day = iso ? toInputDate(iso) : '';
+  if (!day) return false;
+  if (from && day < from) return false;
+  if (to && day > to) return false;
+  return true;
+}

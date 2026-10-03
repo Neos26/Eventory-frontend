@@ -7,6 +7,8 @@ import Table from '../components/Table';
 import type { TableColumn } from '../components/Table';
 import SearchBar from '../components/SearchBar';
 import Select from '../components/Select';
+import DateRangeFilter from '../components/DateRangeFilter';
+import FilterPanel from '../components/FilterPanel';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
@@ -18,12 +20,13 @@ import {
   fetchOrganizations,
   fetchVenues,
   getErrorMessage,
+  refId,
   resolveName,
 } from '../api/eventApi';
 import type { EventRecord, EventStatus, OrganizationRecord, VenueRecord } from '../api/eventApi';
 import { fetchBookings } from '../api/bookingApi';
 import type { BookingRecord } from '../api/bookingApi';
-import { formatDate, formatTime } from '../utils/format';
+import { formatDate, formatTime, withinDateRange } from '../utils/format';
 
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
   draft: 'gray',
@@ -55,6 +58,10 @@ export default function Events() {
 
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [orgFilter, setOrgFilter] = useState('all');
+  const [venueFilter, setVenueFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -105,10 +112,29 @@ export default function Events() {
     return map;
   }, [bookings]);
 
+  const orgFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All organizations' },
+      ...organizations.map((organization) => ({ value: organization._id, label: organization.name })),
+    ],
+    [organizations],
+  );
+
+  const venueFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All venues' },
+      ...venues.map((venue) => ({ value: venue._id, label: venue.name })),
+    ],
+    [venues],
+  );
+
   const filteredEvents = useMemo(() => {
     const search = query.trim().toLowerCase();
     return events.filter((event) => {
       if (statusFilter !== 'all' && event.status !== statusFilter) return false;
+      if (orgFilter !== 'all' && refId(event.organization) !== orgFilter) return false;
+      if (venueFilter !== 'all' && refId(event.venue) !== venueFilter) return false;
+      if (!withinDateRange(event.startDate, dateFrom, dateTo)) return false;
       if (!search) return true;
       const haystack = [
         event.name,
@@ -120,7 +146,25 @@ export default function Events() {
         .toLowerCase();
       return haystack.includes(search);
     });
-  }, [events, query, statusFilter, orgNames, venueNames, bookerByEvent]);
+  }, [
+    events,
+    query,
+    statusFilter,
+    orgFilter,
+    venueFilter,
+    dateFrom,
+    dateTo,
+    orgNames,
+    venueNames,
+    bookerByEvent,
+  ]);
+
+  const activeFilters =
+    (statusFilter !== 'all' ? 1 : 0) +
+    (orgFilter !== 'all' ? 1 : 0) +
+    (venueFilter !== 'all' ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -180,14 +224,14 @@ export default function Events() {
       header: 'Actions',
       render: (row) => (
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/management/events/${row._id}`)}>
+          <Button variant="secondary" size="sm" onClick={() => navigate(`/management/events/${row._id}`)}>
             View
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/management/events/${row._id}/edit`)}>
+          <Button variant="secondary" size="sm" onClick={() => navigate(`/management/events/${row._id}/edit`)}>
             Edit
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             className="text-red-600 hover:bg-red-50"
             onClick={() => {
@@ -212,11 +256,31 @@ export default function Events() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          placeholder="Search events..."
+      <FilterPanel
+        search={<SearchBar value={query} onChange={setQuery} placeholder="Search events..." />}
+        activeCount={activeFilters}
+      >
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by organization"
+            value={orgFilter}
+            onChange={(event) => setOrgFilter(event.target.value)}
+            options={orgFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by venue"
+            value={venueFilter}
+            onChange={(event) => setVenueFilter(event.target.value)}
+            options={venueFilterOptions}
+          />
+        </div>
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
         />
         <div className="w-full sm:w-48">
           <Select
@@ -226,7 +290,7 @@ export default function Events() {
             options={statusOptions}
           />
         </div>
-      </div>
+      </FilterPanel>
 
       {loading ? (
         <LoadingState message="Loading events..." />
@@ -248,13 +312,17 @@ export default function Events() {
           ) : filteredEvents.length === 0 ? (
             <EmptyState
               title="No matching events"
-              description="Try a different search term or status filter."
+              description="Try a different search term or filters."
               action={
                 <Button
                   variant="secondary"
                   onClick={() => {
                     setQuery('');
                     setStatusFilter('all');
+                    setOrgFilter('all');
+                    setVenueFilter('all');
+                    setDateFrom('');
+                    setDateTo('');
                   }}
                 >
                   Clear filters

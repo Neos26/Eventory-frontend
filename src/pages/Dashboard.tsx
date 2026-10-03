@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
   ArrowRight,
@@ -58,7 +58,6 @@ function ResourceBar({ item }: { item: ManagementDashboardResource }) {
 
 export default function Dashboard() {
   useDocumentTitle('Dashboard');
-  const navigate = useNavigate();
 
   const [summary, setSummary] = useState<ManagementDashboard | null>(null);
   const [recentRequests, setRecentRequests] = useState<RecentRequestRow[]>([]);
@@ -89,7 +88,7 @@ export default function Dashboard() {
           new Date(a.submittedAt ?? a.createdAt).getTime(),
       );
       setRecentRequests(
-        sortedBookings.slice(0, 6).map((booking) => {
+        sortedBookings.map((booking) => {
           const event = bookingEvent(booking);
           return {
             booking,
@@ -171,19 +170,6 @@ export default function Dashboard() {
       header: 'Status',
       render: (row) => <BookingStatusBadge status={row.booking.status} />,
     },
-    {
-      key: 'action',
-      header: 'Action',
-      render: (row) => (
-        <button
-          type="button"
-          onClick={() => navigate(`/management/bookings/${row.booking._id}`)}
-          className="cursor-pointer font-medium text-brand-700 hover:underline"
-        >
-          Review
-        </button>
-      ),
-    },
   ];
 
   return (
@@ -238,7 +224,13 @@ export default function Dashboard() {
               description="When bookers submit events, their requests appear here."
             />
           ) : (
-            <Table columns={requestColumns} rows={recentRequests} rowKey={(row) => row.booking._id} emptyMessage="No requests." />
+            <Table
+              wrap
+              columns={requestColumns}
+              rows={recentRequests}
+              rowKey={(row) => row.booking._id}
+              emptyMessage="No requests."
+            />
           )}
         </Card>
 

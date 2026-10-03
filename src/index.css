@@ -1,33 +1,54 @@
-@import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
 
-/* Eventory design system - modern, fresh, green, event-focused */
+/* Eventory design system - OpenAI neutral baseline (quiet developer utility):
+   warm monochrome surfaces, hierarchy from type, spacing and hairlines, with
+   the signal green kept as a sparse accent for focus, success and brand hints. */
 @theme {
-  /* Primary: emerald / deep green */
+  /* Warm neutral scale - paper / canvas / line / slate / ink */
+  --color-slate-50: #f7f7f5;
+  --color-slate-100: #efefec;
+  --color-slate-200: #deded9;
+  --color-slate-300: #c7c7c0;
+  --color-slate-400: #97978f;
+  --color-slate-500: #6f6f69;
+  --color-slate-600: #55554f;
+  --color-slate-700: #3d3d39;
+  --color-slate-800: #262623;
+  --color-slate-900: #171715;
+  --color-slate-950: #0c0c0b;
+
+  /* Signal green - the one brand accent (focus, success, hints) */
   --color-brand-50: #ecfdf5;
   --color-brand-100: #d1fae5;
   --color-brand-200: #a7f3d0;
   --color-brand-300: #6ee7b7;
   --color-brand-400: #34d399;
-  --color-brand-500: #10b981;
-  --color-brand-600: #059669;
-  --color-brand-700: #047857;
-  --color-brand-800: #065f46;
-  --color-brand-900: #064e3b;
-  --color-brand-950: #022c22;
+  --color-brand-500: #10a37f;
+  --color-brand-600: #0b8f6e;
+  --color-brand-700: #08735b;
+  --color-brand-800: #075e4a;
+  --color-brand-900: #064a3b;
+  --color-brand-950: #033026;
 
-  /* Supporting accents: soft lime + warm yellow */
+  /* Supporting accents */
   --color-softlime: #a3e635;
   --color-warmyellow: #fbbf24;
 
-  /* Canvas (off-white) and ink (dark charcoal) */
-  --color-canvas: #f6f8f7;
-  --color-ink: #17211e;
+  /* Surfaces */
+  --color-paper: #ffffff;
+  --color-canvas: #f7f7f5;
+  --color-ink: #171715;
+  --color-muted: #6f6f69;
+  --color-line: #deded9;
+
+  /* Display / decision headings - technical-editorial pause */
+  --font-serif: 'Iowan Old Style', Charter, Georgia, serif;
 }
 
 body {
   @apply bg-canvas text-ink antialiased;
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
 }
 
 /* Respect users who prefer reduced motion. */

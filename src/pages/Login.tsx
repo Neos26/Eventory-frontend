@@ -8,6 +8,7 @@ import { getErrorMessage } from '../api/eventApi';
 import { homeForRole, useAuth } from '../context/AuthContext';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import Logo from '../components/Logo';
+import SiteFooter from '../components/SiteFooter';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
@@ -62,9 +63,9 @@ export default function Login() {
           className="pointer-events-none absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-emerald-500/15 blur-3xl"
           aria-hidden="true"
         />
-        <Logo className="relative text-white" />
+        <Logo className="relative text-white" markClassName="text-brand-300" />
         <div className="relative">
-          <h1 className="text-4xl font-bold leading-tight">
+          <h1 className="font-serif text-4xl font-semibold leading-tight">
             Plan events.
             <br />
             Book resources.
@@ -168,6 +169,8 @@ export default function Login() {
               Back to home
             </Link>
           </p>
+
+          <SiteFooter compact className="mt-6 text-center" />
         </div>
       </div>
     </div>

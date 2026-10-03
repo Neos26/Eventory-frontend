@@ -170,11 +170,11 @@ export default function Organizations() {
       header: 'Actions',
       render: (row) => (
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(row)}>
             Edit
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             disabled={togglingId === row._id}
             className={

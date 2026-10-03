@@ -5,22 +5,26 @@ import Badge from '../components/Badge';
 import Button from '../components/Button';
 import SearchBar from '../components/SearchBar';
 import Select from '../components/Select';
+import DateRangeFilter from '../components/DateRangeFilter';
+import FilterPanel from '../components/FilterPanel';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import {
   fetchEvents,
+  fetchOrganizations,
   fetchVenues,
   getErrorMessage,
+  refId,
 } from '../api/eventApi';
-import type { EventRecord, EventStatus, VenueRecord } from '../api/eventApi';
+import type { EventRecord, EventStatus, OrganizationRecord, VenueRecord } from '../api/eventApi';
 import {
   fetchEventConflicts,
   type ConflictType,
   type EventConflicts,
 } from '../api/insights';
-import { formatDate, formatTime } from '../utils/format';
+import { formatDate, formatTime, withinDateRange } from '../utils/format';
 
 type ConflictKind = ConflictType;
 
@@ -35,6 +39,8 @@ interface ConflictItem {
   available?: number;
   shortage?: number;
   date: string;
+  orgIds: string[];
+  venueId: string;
 }
 
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
@@ -83,6 +89,8 @@ function normalizeConflicts(
     const primaryVenueName = primaryVenueId
       ? venueNames.get(primaryVenueId) ?? 'Unassigned'
       : 'Unassigned';
+    const primaryOrgId = refId(primaryRecord?.organization);
+    const primaryVenue = refId(primaryRecord?.venue);
 
     for (const other of scan.venueConflicts) {
       const pair = [scan.event.id, other._id].sort().join(':');
@@ -103,6 +111,8 @@ function normalizeConflicts(
         },
         venueName: primaryVenueName,
         date: other.startDate,
+        orgIds: [primaryOrgId, refId(eventsById.get(other._id)?.organization)].filter(Boolean),
+        venueId: primaryVenue,
       });
     }
 
@@ -124,6 +134,8 @@ function normalizeConflicts(
           status: other.status,
         },
         date: other.startDate,
+        orgIds: [primaryOrgId, refId(eventsById.get(other._id)?.organization)].filter(Boolean),
+        venueId: primaryVenue,
       });
     }
 
@@ -140,6 +152,8 @@ function normalizeConflicts(
         available: resource.available,
         shortage: resource.shortage,
         date: scan.event.startDate,
+        orgIds: [primaryOrgId].filter(Boolean),
+        venueId: primaryVenue,
       });
     }
   }
@@ -152,24 +166,39 @@ export default function Conflicts() {
   const navigate = useNavigate();
 
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
+  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [venues, setVenues] = useState<VenueRecord[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [query, setQuery] = useState('');
   const [kindFilter, setKindFilter] = useState('all');
+  const [orgFilter, setOrgFilter] = useState('all');
+  const [eventFilter, setEventFilter] = useState('all');
+  const [venueFilter, setVenueFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [events, venues] = await Promise.all([fetchEvents(), fetchVenues()]);
-      const venueNames = new Map(venues.map((venue: VenueRecord) => [venue._id, venue.name]));
+      const [eventList, venueList, orgList] = await Promise.all([
+        fetchEvents(),
+        fetchVenues(),
+        fetchOrganizations().catch(() => []),
+      ]);
+      const venueNames = new Map(venueList.map((venue: VenueRecord) => [venue._id, venue.name]));
 
       // Scan every event that is not cancelled for conflicts.
-      const active = events.filter((event) => event.status !== 'cancelled');
+      const active = eventList.filter((event) => event.status !== 'cancelled');
       const scans = await Promise.all(active.map((event) => fetchEventConflicts(event._id)));
 
-      const eventsById = new Map(events.map((event) => [event._id, event]));
+      const eventsById = new Map(eventList.map((event) => [event._id, event]));
+      setEvents(eventList);
+      setVenues(venueList);
+      setOrganizations(orgList);
       setConflicts(normalizeConflicts(scans, eventsById, venueNames));
     } catch (requestError) {
       setError(getErrorMessage(requestError));
@@ -182,10 +211,44 @@ export default function Conflicts() {
     void load();
   }, [load]);
 
+  const orgFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All organizations' },
+      ...organizations.map((organization) => ({ value: organization._id, label: organization.name })),
+    ],
+    [organizations],
+  );
+
+  const eventFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All events' },
+      ...events.map((event) => ({ value: event._id, label: event.name })),
+    ],
+    [events],
+  );
+
+  const venueFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All venues' },
+      ...venues.map((venue) => ({ value: venue._id, label: venue.name })),
+    ],
+    [venues],
+  );
+
   const filteredConflicts = useMemo(() => {
     const search = query.trim().toLowerCase();
     return conflicts.filter((conflict) => {
       if (kindFilter !== 'all' && conflict.kind !== kindFilter) return false;
+      if (orgFilter !== 'all' && !conflict.orgIds.includes(orgFilter)) return false;
+      if (
+        eventFilter !== 'all' &&
+        conflict.primaryEvent.id !== eventFilter &&
+        conflict.otherEvent?.id !== eventFilter
+      ) {
+        return false;
+      }
+      if (venueFilter !== 'all' && conflict.venueId !== venueFilter) return false;
+      if (!withinDateRange(conflict.date, dateFrom, dateTo)) return false;
       if (!search) return true;
       const haystack = [
         conflict.primaryEvent.name,
@@ -197,7 +260,15 @@ export default function Conflicts() {
         .toLowerCase();
       return haystack.includes(search);
     });
-  }, [conflicts, query, kindFilter]);
+  }, [conflicts, query, kindFilter, orgFilter, eventFilter, venueFilter, dateFrom, dateTo]);
+
+  const activeFilters =
+    (kindFilter !== 'all' ? 1 : 0) +
+    (orgFilter !== 'all' ? 1 : 0) +
+    (eventFilter !== 'all' ? 1 : 0) +
+    (venueFilter !== 'all' ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
 
   const renderConflict = (conflict: ConflictItem) => {
     if (conflict.kind === 'resource') {
@@ -294,8 +365,40 @@ export default function Conflicts() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBar value={query} onChange={setQuery} placeholder="Search conflicts..." />
+      <FilterPanel
+        search={<SearchBar value={query} onChange={setQuery} placeholder="Search conflicts..." />}
+        activeCount={activeFilters}
+      >
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by organization"
+            value={orgFilter}
+            onChange={(event) => setOrgFilter(event.target.value)}
+            options={orgFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by event"
+            value={eventFilter}
+            onChange={(event) => setEventFilter(event.target.value)}
+            options={eventFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by venue"
+            value={venueFilter}
+            onChange={(event) => setVenueFilter(event.target.value)}
+            options={venueFilterOptions}
+          />
+        </div>
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
+        />
         <div className="w-full sm:w-52">
           <Select
             aria-label="Filter by conflict type"
@@ -304,7 +407,7 @@ export default function Conflicts() {
             options={filterOptions}
           />
         </div>
-      </div>
+      </FilterPanel>
 
       {/* Conflict summary */}
       {conflicts.length > 0 && (
@@ -334,15 +437,20 @@ export default function Conflicts() {
       ) : filteredConflicts.length === 0 ? (
         <EmptyState
           title="No matching conflicts"
-          description="Try a different search term or conflict type."
-          action={
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setQuery('');
-                setKindFilter('all');
-              }}
-            >
+            description="Try a different search term or filters."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setQuery('');
+                  setKindFilter('all');
+                  setOrgFilter('all');
+                  setEventFilter('all');
+                  setVenueFilter('all');
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+              >
               Clear filters
             </Button>
           }
@@ -369,7 +477,7 @@ export default function Conflicts() {
                     >
                       <div className="min-w-0 flex-1">{renderConflict(conflict)}</div>
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         size="sm"
                         onClick={() => navigate(`/management/events/${conflict.primaryEvent.id}`)}
                       >
