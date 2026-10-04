@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import BackButton from '../components/BackButton';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
+import PaginatedList from '../components/PaginatedList';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { fetchEvent, fetchEventConflicts, getErrorMessage, isNotFound } from '../api/eventApi';
 import type { ConflictRecord, ConflictsReport, EventRecord, EventStatus } from '../api/eventApi';
@@ -66,6 +68,7 @@ export default function EventConflicts() {
   if (notFound) {
     return (
       <>
+        <BackButton to="/management/events" label="Back to events" />
         <PageHeader title="Event Conflicts" />
         <EmptyState
           title="Event not found"
@@ -79,6 +82,7 @@ export default function EventConflicts() {
   if (loadError || !event || !report) {
     return (
       <>
+        <BackButton to="/management/events" label="Back to events" />
         <PageHeader title="Event Conflicts" />
         <ErrorState
           message={loadError ?? 'Unable to load conflicts for this event.'}
@@ -114,21 +118,17 @@ export default function EventConflicts() {
 
   return (
     <>
+      <BackButton to={`/management/events/${event._id}`} label="Back to event" />
       <PageHeader
         title="Event Conflicts"
         description={`Venue, schedule and resource conflicts for ${event.name}`}
         actions={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => navigate(`/management/events/${event._id}/readiness`)}
-            >
-              Check Readiness
-            </Button>
-            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}`)}>
-              Back to event
-            </Button>
-          </>
+          <Button
+            variant="secondary"
+            onClick={() => navigate(`/management/events/${event._id}/readiness`)}
+          >
+            Check Readiness
+          </Button>
         }
       />
 
@@ -175,11 +175,14 @@ export default function EventConflicts() {
           {report.venueConflicts.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500">No venue conflicts.</p>
           ) : (
-            <div className="mt-3 space-y-3">
-              {report.venueConflicts.map((conflict) => renderEventConflict(conflict, 'venue'))}
-            </div>
-          )}
-        </Card>
+            <PaginatedList
+              items={report.venueConflicts}
+              itemKey={(conflict) => conflict._id}
+              pageSize={10}
+              className="mt-3 space-y-3"
+              renderItem={(conflict) => renderEventConflict(conflict, 'venue')}
+            />)}
+          </Card>
 
         {/* Schedule conflicts */}
         <Card>
@@ -189,10 +192,13 @@ export default function EventConflicts() {
           {report.scheduleConflicts.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500">No schedule conflicts.</p>
           ) : (
-            <div className="mt-3 space-y-3">
-              {report.scheduleConflicts.map((conflict) => renderEventConflict(conflict, 'schedule'))}
-            </div>
-          )}
+            <PaginatedList
+              items={report.scheduleConflicts}
+              itemKey={(conflict) => conflict._id}
+              pageSize={10}
+              className="mt-3 space-y-3"
+              renderItem={(conflict) => renderEventConflict(conflict, 'schedule')}
+            />)}
         </Card>
 
         {/* Resource conflicts */}
@@ -203,12 +209,13 @@ export default function EventConflicts() {
           {report.resourceConflicts.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500">No resource shortages.</p>
           ) : (
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {report.resourceConflicts.map((issue) => (
-                <div
-                  key={issue.resourceId}
-                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3"
-                >
+            <PaginatedList
+              items={report.resourceConflicts}
+              itemKey={(issue) => issue.resourceId}
+              pageSize={8}
+              className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+              renderItem={(issue) => (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                   <p className="text-sm font-semibold text-red-800">{issue.resource}</p>
                   <p className="mt-1 text-sm text-slate-600">
                     Required: <span className="font-medium">{issue.required}</span>
@@ -218,8 +225,8 @@ export default function EventConflicts() {
                     Shortage: <span className="font-semibold text-red-600">{issue.shortage}</span>
                   </p>
                 </div>
-              ))}
-            </div>
+              )}
+            />
           )}
         </Card>
       </div>

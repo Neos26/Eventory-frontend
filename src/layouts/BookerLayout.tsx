@@ -167,7 +167,7 @@ export default function BookerLayout() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 bg-[radial-gradient(900px_320px_at_50%_-60px,rgba(16,185,129,0.09),transparent_70%)] sm:px-6 lg:px-8">
+        <main className="mx-auto w-full max-w-[1536px] px-4 py-6 bg-[radial-gradient(900px_320px_at_50%_-60px,rgba(16,185,129,0.09),transparent_70%)] sm:px-6 lg:px-8">
           <Outlet />
         </main>
       </div>

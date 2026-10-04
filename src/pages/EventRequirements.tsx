@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import BackButton from '../components/BackButton';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
@@ -320,6 +321,7 @@ export default function EventRequirements() {
   if (notFound) {
     return (
       <>
+        <BackButton to="/management/events" label="Back to events" />
         <PageHeader title="Event Requirements" />
         <EmptyState
           title="Event not found"
@@ -333,6 +335,7 @@ export default function EventRequirements() {
   if (loadError || !event) {
     return (
       <>
+        <BackButton to="/management/events" label="Back to events" />
         <PageHeader title="Event Requirements" />
         <ErrorState
           message={loadError ?? 'Unable to load requirements.'}
@@ -344,14 +347,10 @@ export default function EventRequirements() {
 
   return (
     <>
+      <BackButton to={`/management/events/${event._id}`} label="Back to event" />
       <PageHeader
         title="Event Requirements"
         description={`Resources needed for ${event.name}`}
-        actions={
-          <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}`)}>
-            Back to event
-          </Button>
-        }
       />
 
       <Card>

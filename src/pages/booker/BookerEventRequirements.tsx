@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   createRequirement,
   deleteRequirement,
@@ -14,6 +14,7 @@ import {
 } from '../../api/eventApi';
 import { fetchResourceAvailability, fetchResources } from '../../api/resourceApi';
 import useDocumentTitle from '../../hooks/useDocumentTitle';
+import BackButton from '../../components/BackButton';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
@@ -22,6 +23,7 @@ import Input from '../../components/Input';
 import LoadingState from '../../components/LoadingState';
 import Modal from '../../components/Modal';
 import PageHeader from '../../components/PageHeader';
+import PaginatedList from '../../components/PaginatedList';
 import Select from '../../components/Select';
 import { formatDate } from '../../utils/format';
 import type { EventRecord, RequirementRecord } from '../../types/event';
@@ -184,29 +186,28 @@ export default function BookerEventRequirements() {
   };
 
   if (loading) return <LoadingState message="Loading requirements..." />;
-  if (error || !event) return <ErrorState message={error ?? 'Event not found.'} onRetry={load} />;
+  if (error || !event) {
+    return (
+      <>
+        <BackButton to="/booker/events" label="Back to events" />
+        <ErrorState message={error ?? 'Event not found.'} onRetry={load} />
+      </>
+    );
+  }
 
   return (
     <>
+      <BackButton to="/booker/events" label="Back to events" />
       <PageHeader
         title="Resource Requirements"
         description={`${event.name} · ${formatDate(event.startDate)}`}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/booker/events"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              My Events
-            </Link>
-            <Link
-              to={`/booker/events/${event._id}`}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
-            >
-              Review &amp; Book
-            </Link>
-          </div>
+          <Link
+            to={`/booker/events/${event._id}`}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+          >
+            Review &amp; Book
+          </Link>
         }
       />
 
@@ -229,8 +230,13 @@ export default function BookerEventRequirements() {
             description="Add projectors, chairs, tables or sound systems below."
           />
         ) : (
-          <ul className="space-y-3">
-            {requirements.map((requirement) => {
+          <PaginatedList
+            as="ul"
+            items={requirements}
+            itemKey={(requirement) => requirement._id}
+            pageSize={10}
+            className="space-y-3"
+            renderItem={(requirement) => {
               const resourceId = refId(requirement.resource);
               const issue = shortages[resourceId];
               const knownAvailability = availability[resourceId];
@@ -317,8 +323,8 @@ export default function BookerEventRequirements() {
                   )}
                 </li>
               );
-            })}
-          </ul>
+            }}
+          />
         )}
       </Card>
 

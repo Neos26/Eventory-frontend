@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import BackButton from '../components/BackButton';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
+import PaginatedList from '../components/PaginatedList';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import {
   fetchEvent,
@@ -132,6 +134,7 @@ export default function EventReadiness() {
   if (notFound) {
     return (
       <>
+        <BackButton to="/management/events" label="Back to events" />
         <PageHeader title="Event Readiness" />
         <EmptyState
           title="Event not found"
@@ -145,6 +148,7 @@ export default function EventReadiness() {
   if (loadError || !event) {
     return (
       <>
+        <BackButton to="/management/events" label="Back to events" />
         <PageHeader title="Event Readiness" />
         <ErrorState
           message={loadError ?? 'Unable to load this event.'}
@@ -158,18 +162,14 @@ export default function EventReadiness() {
 
   return (
     <>
+      <BackButton to={`/management/events/${event._id}`} label="Back to event" />
       <PageHeader
         title="Event Readiness"
         description={`${event.name} · ${formatDate(event.startDate)}`}
         actions={
-          <>
-            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/edit`)}>
-              Edit Event
-            </Button>
-            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}`)}>
-              Back to event
-            </Button>
-          </>
+          <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/edit`)}>
+            Edit Event
+          </Button>
         }
       />
 
@@ -252,30 +252,35 @@ export default function EventReadiness() {
                   </Badge>
                 </div>
 
-                {requirements.map((requirement) => {
-                  const resourceId = refId(requirement.resource);
-                  const issue = issuesByResource.get(resourceId);
-                  const name = requirementNames.get(resourceId) ?? 'Unknown resource';
-                  return (
-                    <div
-                      key={requirement._id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3"
-                    >
-                      <span className="flex items-center gap-2 text-sm font-medium text-slate-900">
-                        <span
-                          aria-hidden
-                          className={issue ? 'text-red-600' : 'text-emerald-600'}
-                        >
-                          {issue ? '✗' : '✓'}
+                <PaginatedList
+                  items={requirements}
+                  itemKey={(requirement) => requirement._id}
+                  pageSize={10}
+                  className="space-y-2"
+                  renderItem={(requirement) => {
+                    const resourceId = refId(requirement.resource);
+                    const issue = issuesByResource.get(resourceId);
+                    const name = requirementNames.get(resourceId) ?? 'Unknown resource';
+                    return (
+                      <div
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3"
+                      >
+                        <span className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                          <span
+                            aria-hidden
+                            className={issue ? 'text-red-600' : 'text-emerald-600'}
+                          >
+                            {issue ? '✗' : '✓'}
+                          </span>
+                          {name} {issue ? 'unavailable' : 'available'}
                         </span>
-                        {name} {issue ? 'unavailable' : 'available'}
-                      </span>
-                      <Badge tone={issue ? 'red' : 'green'}>
-                        {issue ? `shortage ${issue.shortage}` : 'available'}
-                      </Badge>
-                    </div>
-                  );
-                })}
+                        <Badge tone={issue ? 'red' : 'green'}>
+                          {issue ? `shortage ${issue.shortage}` : 'available'}
+                        </Badge>
+                      </div>
+                    );
+                  }}
+                />
 
                 {requirements.length === 0 && (
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
@@ -300,12 +305,13 @@ export default function EventReadiness() {
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Resource shortages
                 </h2>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {readiness.resourceIssues.map((issue) => (
-                    <div
-                      key={issue.resourceId}
-                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3"
-                    >
+                <PaginatedList
+                  items={readiness.resourceIssues}
+                  itemKey={(issue) => issue.resourceId}
+                  pageSize={8}
+                  className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+                  renderItem={(issue) => (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                       <p className="text-sm font-semibold text-red-800">{issue.resource}</p>
                       <p className="mt-1 text-sm text-slate-600">
                         Required: <span className="font-medium">{issue.required}</span>
@@ -315,8 +321,8 @@ export default function EventReadiness() {
                         Shortage: <span className="font-semibold text-red-600">{issue.shortage}</span>
                       </p>
                     </div>
-                  ))}
-                </div>
+                  )}
+                />
               </Card>
             )}
 
@@ -339,10 +345,13 @@ export default function EventReadiness() {
                   No venue or schedule conflicts detected.
                 </p>
               ) : (
-                <div className="mt-3 space-y-3">
-                  {readiness.conflicts.map((conflict) => (
+                <PaginatedList
+                  items={readiness.conflicts}
+                  itemKey={(conflict) => `${conflict.type}-${conflict._id}`}
+                  pageSize={10}
+                  className="mt-3 space-y-3"
+                  renderItem={(conflict) => (
                     <div
-                      key={`${conflict.type}-${conflict._id}`}
                       className="flex flex-wrap items-start gap-3 rounded-lg border border-slate-100 px-4 py-3"
                     >
                       <Badge tone={conflict.type === 'venue' ? 'red' : 'amber'}>
@@ -364,8 +373,8 @@ export default function EventReadiness() {
                         <Badge tone={statusTones[conflict.status]}>{conflict.status}</Badge>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                />
               )}
             </Card>
           </>
