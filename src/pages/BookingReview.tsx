@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CalendarDays, CheckCircle2, Check, Clock3, MapPin, Package, X, Users } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { AlertTriangle, CalendarDays, CheckCircle2, Check, Clock3, MapPin, Package, X, Users } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import BackButton from '../components/BackButton';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import Button from '../components/Button';
@@ -10,6 +11,7 @@ import Table from '../components/Table';
 import type { TableColumn } from '../components/Table';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
+import PaginatedList from '../components/PaginatedList';
 import { BookingStatusBadge, EventStatusBadge } from '../components/StatusBadges';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import {
@@ -235,13 +237,26 @@ export default function BookingReview() {
 
   if (loading) return <LoadingState message="Loading booking..." />;
   if (error || !booking || !event) {
-    return <ErrorState message={error ?? 'Booking not found.'} onRetry={() => void load()} />;
+    return (
+      <>
+        <BackButton to="/management/bookings" label="Back to bookings" />
+        <ErrorState message={error ?? 'Booking not found.'} onRetry={() => void load()} />
+      </>
+    );
   }
 
   const booker = typeof booking.bookerId === 'string' ? null : booking.bookerId;
   const conflictCount = conflicts?.conflicts.length ?? 0;
   const shortageCount = readiness?.resourceIssues.length ?? 0;
   const isReady = readiness?.ready ?? false;
+  const decisionNote =
+    booking.status === 'Approved'
+      ? 'This booking is approved — the venue is held and every requested resource is reserved.'
+      : booking.status === 'Rejected'
+        ? 'This booking was rejected and the booker has been notified of the reason.'
+        : booking.status === 'Cancelled'
+          ? 'This booking was cancelled before a decision was made.'
+          : 'This booking is complete — nothing further to do.';
 
   const resourceColumns: TableColumn<ResourceRow>[] = [
     {
@@ -289,18 +304,10 @@ export default function BookingReview() {
 
   return (
     <>
+      <BackButton to="/management/bookings" label="Back to bookings" />
       <PageHeader
         title="Booking Review"
         description={`Submitted ${formatDate(booking.submittedAt ?? booking.createdAt)} · ${event.name}`}
-        actions={
-          <Link
-            to="/management/bookings"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Booking Requests
-          </Link>
-        }
       />
 
       {/* Booking status banner */}
@@ -396,6 +403,24 @@ export default function BookingReview() {
             )}
           </Card>
 
+          {/* Resources */}
+          <Card>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-semibold text-slate-900">Resources</h2>
+              <span className="text-xs text-slate-400">{rows.length} requested</span>
+            </div>
+            {rows.length === 0 ? (
+              <p className="py-4 text-center text-sm text-slate-500">
+                No resources were requested for this event.
+              </p>
+            ) : (
+              <Table columns={resourceColumns} rows={rows} rowKey={(row) => row.resourceId} />
+            )}
+          </Card>
+        </div>
+
+        {/* Review rail: venue, readiness, decision */}
+        <div className="space-y-6 lg:col-span-2">
           {/* Venue */}
           <Card>
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -439,37 +464,25 @@ export default function BookingReview() {
             </dl>
 
             {conflicts && conflicts.venueConflicts.length > 0 && (
-              <ul className="mt-4 space-y-2 border-t border-slate-100 pt-4">
-                {conflicts.venueConflicts.map((other) => (
-                  <li key={other._id} className="flex items-center gap-2 text-sm text-red-600">
+              <PaginatedList
+                as="ul"
+                items={conflicts.venueConflicts}
+                itemKey={(other) => other._id}
+                pageSize={5}
+                className="mt-4 space-y-2 border-t border-slate-100 pt-4"
+                renderItem={(other) => (
+                  <li className="flex items-center gap-2 text-sm text-red-600">
                     <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
                     Overlaps with <span className="font-medium">{other.name}</span> on{' '}
                     {formatDate(other.startDate)}, {formatTime(other.startDate)}–
                     {formatTime(other.endDate)}
                   </li>
-                ))}
-              </ul>
+                )}
+              />
             )}
           </Card>
 
-          {/* Resources */}
-          <Card>
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="font-semibold text-slate-900">Resources</h2>
-              <span className="text-xs text-slate-400">{rows.length} requested</span>
-            </div>
-            {rows.length === 0 ? (
-              <p className="py-4 text-center text-sm text-slate-500">
-                No resources were requested for this event.
-              </p>
-            ) : (
-              <Table columns={resourceColumns} rows={rows} rowKey={(row) => row.resourceId} />
-            )}
-          </Card>
-        </div>
-
-        {/* Readiness */}
-        <div className="space-y-6 lg:col-span-2">
+          {/* Readiness */}
           <Card>
             <h2 className="mb-4 font-semibold text-slate-900">Readiness</h2>
 
@@ -525,98 +538,111 @@ export default function BookingReview() {
             </ul>
 
             {readiness && readiness.resourceIssues.length > 0 && (
-              <ul className="mt-4 space-y-2">
-                {readiness.resourceIssues.map((issue) => (
-                  <li
-                    key={issue.resourceId}
-                    className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
-                  >
+              <PaginatedList
+                as="ul"
+                items={readiness.resourceIssues}
+                itemKey={(issue) => issue.resourceId}
+                pageSize={5}
+                className="mt-4 space-y-2"
+                renderItem={(issue) => (
+                  <li className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
                     <span className="font-semibold">{issue.resource}</span>: needs{' '}
                     {issue.required}, only {issue.available} available —{' '}
                     <span className="font-semibold">shortage of {issue.shortage}</span>.
                   </li>
-                ))}
-              </ul>
+                )}
+              />
+            )}
+          </Card>
+
+          {/* Approval decision — conflicts are shown before the approve action */}
+          <Card>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-semibold text-slate-900">Approval Check</h2>
+              <Badge tone={conflictCount === 0 ? 'green' : 'red'}>
+                {conflictCount} conflict{conflictCount === 1 ? '' : 's'}
+              </Badge>
+            </div>
+
+            {approveError && (
+              <div
+                role="alert"
+                className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                <p className="font-semibold">Approval blocked</p>
+                <p className="mt-0.5">{approveError}</p>
+                {approveConflicts.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {approveConflicts.map((conflict, index) => (
+                      <li key={`${conflict.type}-${index}`} className="text-xs">
+                        • {conflictDetail(conflict)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {conflicts && conflicts.conflicts.length > 0 ? (
+              <PaginatedList
+                as="ul"
+                items={conflicts.conflicts}
+                itemKey={(conflict, index) => `${conflict.type}-${index}`}
+                pageSize={10}
+                className="space-y-2"
+                renderItem={(conflict, index) => (
+                  <li
+                    key={`${conflict.type}-${index}`}
+                    className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5"
+                  >
+                    <Badge tone={conflict.type === 'RESOURCE_SHORTAGE' ? 'amber' : 'red'}>
+                      {conflictLabels[conflict.type] ?? conflict.type}
+                    </Badge>
+                    <p className="min-w-0 text-sm text-slate-700">{conflictDetail(conflict)}</p>
+                  </li>
+                )}
+              />
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
+                <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {booking.status === 'Pending'
+                  ? 'No venue, schedule or resource conflicts — safe to approve.'
+                  : 'No venue, schedule or resource conflicts.'}
+              </div>
+            )}
+
+            {booking.status === 'Pending' ? (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-500">
+                  {conflictCount > 0
+                    ? `Approval is blocked until ${conflictCount} conflict${conflictCount === 1 ? '' : 's'} ${
+                        conflictCount === 1 ? 'is' : 'are'
+                      } resolved.`
+                    : 'Approving holds the venue and reserves every requested resource.'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="danger" onClick={openReject} disabled={rejecting || approving}>
+                    <X className="h-4 w-4" aria-hidden="true" />
+                    Reject Booking
+                  </Button>
+                  <Button
+                    onClick={handleApprove}
+                    disabled={approving || rejecting || conflictCount > 0}
+                    title={conflictCount > 0 ? 'Resolve conflicts before approving' : undefined}
+                  >
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                    {approving ? 'Approving...' : 'Approve Booking'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-500">{decisionNote}</p>
+              </div>
             )}
           </Card>
         </div>
       </div>
-
-      {/* Approval decision — conflicts are shown before the approve action */}
-      {booking.status === 'Pending' && (
-        <Card className="mt-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-semibold text-slate-900">Approval Check</h2>
-            <Badge tone={conflictCount === 0 ? 'green' : 'red'}>
-              {conflictCount} conflict{conflictCount === 1 ? '' : 's'}
-            </Badge>
-          </div>
-
-          {approveError && (
-            <div
-              role="alert"
-              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
-              <p className="font-semibold">Approval blocked</p>
-              <p className="mt-0.5">{approveError}</p>
-              {approveConflicts.length > 0 && (
-                <ul className="mt-2 space-y-1">
-                  {approveConflicts.map((conflict, index) => (
-                    <li key={`${conflict.type}-${index}`} className="text-xs">
-                      • {conflictDetail(conflict)}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {conflicts && conflicts.conflicts.length > 0 ? (
-            <ul className="space-y-2">
-              {conflicts.conflicts.map((conflict, index) => (
-                <li
-                  key={`${conflict.type}-${index}`}
-                  className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5"
-                >
-                  <Badge tone={conflict.type === 'RESOURCE_SHORTAGE' ? 'amber' : 'red'}>
-                    {conflictLabels[conflict.type] ?? conflict.type}
-                  </Badge>
-                  <p className="min-w-0 text-sm text-slate-700">{conflictDetail(conflict)}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
-              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-              No venue, schedule or resource conflicts — safe to approve.
-            </div>
-          )}
-
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-            <p className="text-xs text-slate-500">
-              {conflictCount > 0
-                ? `Approval is blocked until ${conflictCount} conflict${conflictCount === 1 ? '' : 's'} ${
-                    conflictCount === 1 ? 'is' : 'are'
-                  } resolved.`
-                : 'Approving holds the venue and reserves every requested resource.'}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="danger" onClick={openReject} disabled={rejecting || approving}>
-                <X className="h-4 w-4" aria-hidden="true" />
-                Reject Booking
-              </Button>
-              <Button
-                onClick={handleApprove}
-                disabled={approving || rejecting || conflictCount > 0}
-                title={conflictCount > 0 ? 'Resolve conflicts before approving' : undefined}
-              >
-                <Check className="h-4 w-4" aria-hidden="true" />
-                {approving ? 'Approving...' : 'Approve Booking'}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
 
       {/* Rejection reason modal */}
       <Modal

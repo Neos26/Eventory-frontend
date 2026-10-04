@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import BackButton from '../components/BackButton';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
@@ -28,6 +29,30 @@ const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
   ongoing: 'green',
   completed: 'gray',
   cancelled: 'red',
+};
+
+const statusHeadlines: Record<EventStatus, string> = {
+  draft: 'Awaiting confirmation',
+  planned: 'Confirmed and scheduled',
+  ongoing: 'Happening now',
+  completed: 'Finished',
+  cancelled: 'Cancelled',
+};
+
+const statusBlurb: Record<EventStatus, string> = {
+  draft: 'Not confirmed yet — details can still change.',
+  planned: 'Dates, venue and resources are locked in.',
+  ongoing: 'The event is in progress.',
+  completed: 'This event has concluded.',
+  cancelled: 'No longer going ahead — resources are released.',
+};
+
+const statusBanner: Record<EventStatus, string> = {
+  draft: 'border-slate-200 bg-slate-50 text-slate-700',
+  planned: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  ongoing: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  completed: 'border-slate-200 bg-slate-100 text-slate-700',
+  cancelled: 'border-red-200 bg-red-50 text-red-700',
 };
 
 interface FieldProps {
@@ -110,6 +135,7 @@ export default function EventDetail() {
   if (notFound) {
     return (
       <>
+        <BackButton to="/management/events" label="Back to events" />
         <PageHeader title="Event" />
         <EmptyState
           title="Event not found"
@@ -123,6 +149,7 @@ export default function EventDetail() {
   if (loadError || !event) {
     return (
       <>
+        <BackButton to="/management/events" label="Back to events" />
         <PageHeader title="Event" />
         <ErrorState message={loadError ?? 'Unable to load this event.'} onRetry={() => void load()} />
       </>
@@ -134,60 +161,105 @@ export default function EventDetail() {
 
   return (
     <>
+      <BackButton to="/management/events" label="Back to events" />
       <PageHeader
         title={event.name}
-        actions={
-          <>
-            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/edit`)}>
-              Edit Event
-            </Button>
-            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/requirements`)}>
-              Requirements
-            </Button>
-            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/readiness`)}>
-              Check Readiness
-            </Button>
-            <Button variant="secondary" onClick={() => navigate(`/management/events/${event._id}/conflicts`)}>
-              View Conflicts
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setDeleteError(null);
-                setShowDelete(true);
-              }}
-            >
-              Delete
-            </Button>
-          </>
-        }
+        description={`${event.category} · ${formatDate(event.startDate)}`}
       />
 
-      <Card>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Status">
-            <Badge tone={statusTones[event.status]}>{event.status}</Badge>
-          </Field>
-          <Field label="Organization">{resolveName(event.organization, orgNames)}</Field>
-          <Field label="Venue">{resolveName(event.venue, venueNames, 'Unassigned')}</Field>
-          <Field label="Category">{event.category}</Field>
-          <Field label="Date">{formatDate(event.startDate)}</Field>
-          <Field label="Start time">{formatTime(event.startDate)}</Field>
-          <Field label="End time">{formatTime(event.endDate)}</Field>
-          <Field label="Expected attendees">{event.expectedAttendees}</Field>
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* Main: full event information */}
+        <div className="space-y-6 lg:col-span-3">
+          <Card>
+            <h2 className="mb-4 font-semibold text-slate-900">Event details</h2>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Field label="Status">
+                <Badge tone={statusTones[event.status]}>{event.status}</Badge>
+              </Field>
+              <Field label="Category">{event.category}</Field>
+              <Field label="Organization">{resolveName(event.organization, orgNames)}</Field>
+              <Field label="Venue">{resolveName(event.venue, venueNames, 'Unassigned')}</Field>
+              <Field label="Date">{formatDate(event.startDate)}</Field>
+              <Field label="Start time">{formatTime(event.startDate)}</Field>
+              <Field label="End time">{formatTime(event.endDate)}</Field>
+              <Field label="Expected attendees">{event.expectedAttendees}</Field>
+            </div>
+
+            {event.description && (
+              <div className="mt-6 border-t border-slate-100 pt-5">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Description
+                </h3>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                  {event.description}
+                </p>
+              </div>
+            )}
+          </Card>
         </div>
 
-        {event.description && (
-          <div className="mt-6 border-t border-slate-100 pt-5">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Description
+        {/* Action rail: status banner + quick actions */}
+        <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Status
             </h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-              {event.description}
-            </p>
-          </div>
-        )}
-      </Card>
+            <div className={`rounded-xl border px-4 py-3 ${statusBanner[event.status]}`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold">{statusHeadlines[event.status]}</span>
+                <Badge tone={statusTones[event.status]}>{event.status}</Badge>
+              </div>
+              <p className="mt-1 text-xs opacity-80">{statusBlurb[event.status]}</p>
+            </div>
+          </Card>
+
+          <Card>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Actions
+            </h2>
+            <div className="space-y-2">
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => navigate(`/management/events/${event._id}/edit`)}
+              >
+                Edit Event
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => navigate(`/management/events/${event._id}/requirements`)}
+              >
+                Requirements
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => navigate(`/management/events/${event._id}/readiness`)}
+              >
+                Check Readiness
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => navigate(`/management/events/${event._id}/conflicts`)}
+              >
+                View Conflicts
+              </Button>
+              <Button
+                variant="danger"
+                className="w-full"
+                onClick={() => {
+                  setDeleteError(null);
+                  setShowDelete(true);
+                }}
+              >
+                Delete Event
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
 
       <Modal
         open={showDelete}

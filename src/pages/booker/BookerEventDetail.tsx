@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
-  ArrowLeft,
   Ban,
   CalendarDays,
   CheckCircle2,
   Clock3,
-  Edit3,
   Layers,
   MapPin,
   Package,
@@ -30,10 +28,13 @@ import {
 import { bookingEventId, createBooking, fetchBookings } from '../../api/bookingApi';
 import { fetchResourceAvailability } from '../../api/resourceApi';
 import useDocumentTitle from '../../hooks/useDocumentTitle';
+import BackButton from '../../components/BackButton';
+import Button from '../../components/Button';
 import Card from '../../components/Card';
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import PageHeader from '../../components/PageHeader';
+import PaginatedList from '../../components/PaginatedList';
 import { BookingStatusBadge, EventStatusBadge } from '../../components/StatusBadges';
 import { formatDate, formatTime } from '../../utils/format';
 import type { ConflictReport, EventRecord, Readiness, RequirementRecord } from '../../types/event';
@@ -76,6 +77,7 @@ function conflictDetail(conflict: ConflictReport['conflicts'][number]): string {
 export default function BookerEventDetail() {
   useDocumentTitle('Event Details');
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [event, setEvent] = useState<EventRecord | null>(null);
   const [requirements, setRequirements] = useState<RequirementRecord[]>([]);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
@@ -167,34 +169,10 @@ export default function BookerEventDetail() {
 
   return (
     <>
+      <BackButton to="/booker/events" label="Back to events" />
       <PageHeader
         title={event.name}
         description={`${formatDate(event.startDate)} · ${formatTime(event.startDate)} – ${formatTime(event.endDate)}`}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/booker/events"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              My Events
-            </Link>
-            <Link
-              to={`/booker/events/${event._id}/requirements`}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-            >
-              <Package className="h-4 w-4" aria-hidden="true" />
-              Requirements
-            </Link>
-            <Link
-              to={`/booker/events/${event._id}/edit`}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
-            >
-              <Edit3 className="h-4 w-4" aria-hidden="true" />
-              Edit
-            </Link>
-          </div>
-        }
       />
 
       <div className="grid gap-6 lg:grid-cols-5">
@@ -285,8 +263,13 @@ export default function BookerEventDetail() {
                 </Link>
               </p>
             ) : (
-              <ul className="space-y-2">
-                {requirements.map((requirement) => {
+              <PaginatedList
+                as="ul"
+                items={requirements}
+                itemKey={(requirement) => requirement._id}
+                pageSize={10}
+                className="space-y-2"
+                renderItem={(requirement) => {
                   const resourceId = refId(requirement.resource);
                   const issue = readiness?.resourceIssues.find(
                     (item) => item.resourceId === resourceId,
@@ -325,14 +308,36 @@ export default function BookerEventDetail() {
                       </span>
                     </li>
                   );
-                })}
-              </ul>
+                }}
+              />
             )}
           </Card>
         </div>
 
-        {/* Right: readiness + conflicts */}
+        {/* Right: actions + readiness + conflicts */}
         <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Actions
+            </h2>
+            <div className="space-y-2">
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => navigate(`/booker/events/${event._id}/edit`)}
+              >
+                Edit Event
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => navigate(`/booker/events/${event._id}/requirements`)}
+              >
+                Manage Requirements
+              </Button>
+            </div>
+          </Card>
+
           <Card>
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="font-semibold text-slate-900">Readiness</h2>
@@ -371,19 +376,21 @@ export default function BookerEventDetail() {
             )}
 
             {readiness && readiness.resourceIssues.length > 0 && (
-              <ul className="mt-3 space-y-2">
-                {readiness.resourceIssues.map((issue) => (
-                  <li
-                    key={issue.resourceId}
-                    className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
-                  >
+              <PaginatedList
+                as="ul"
+                items={readiness.resourceIssues}
+                itemKey={(issue) => issue.resourceId}
+                pageSize={5}
+                className="mt-3 space-y-2"
+                renderItem={(issue) => (
+                  <li className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
                     <Package className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>
                       {issue.resource}: needs {issue.required}, only {issue.available} available.
                     </span>
                   </li>
-                ))}
-              </ul>
+                )}
+              />
             )}
           </Card>
 
@@ -409,8 +416,13 @@ export default function BookerEventDetail() {
                 No conflicts detected for this event.
               </div>
             ) : (
-              <ul className="space-y-2">
-                {conflicts.conflicts.map((conflict, index) => (
+              <PaginatedList
+                as="ul"
+                items={conflicts.conflicts}
+                itemKey={(conflict, index) => `${conflict.type}-${index}`}
+                pageSize={10}
+                className="space-y-2"
+                renderItem={(conflict, index) => (
                   <li
                     key={`${conflict.type}-${index}`}
                     className="rounded-lg border border-slate-100 bg-white p-3"
@@ -424,8 +436,8 @@ export default function BookerEventDetail() {
                     </span>
                     <p className="mt-1.5 text-sm text-slate-700">{conflictDetail(conflict)}</p>
                   </li>
-                ))}
-              </ul>
+                )}
+              />
             )}
           </Card>
         </div>
