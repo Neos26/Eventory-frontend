@@ -10,6 +10,7 @@ import FilterPanel from '../components/FilterPanel';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
+import PaginatedList from '../components/PaginatedList';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import {
   fetchEvents,
@@ -469,12 +470,13 @@ export default function Conflicts() {
                     {grouped[group.kind].length === 1 ? '' : 's'}
                   </span>
                 </div>
-                <div className="space-y-3">
-                  {grouped[group.kind].map((conflict) => (
-                    <div
-                      key={conflict.id}
-                      className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm"
-                    >
+                <PaginatedList
+                  items={grouped[group.kind]}
+                  itemKey={(conflict) => conflict.id}
+                  pageSize={8}
+                  className="space-y-3"
+                  renderItem={(conflict) => (
+                    <div className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
                       <div className="min-w-0 flex-1">{renderConflict(conflict)}</div>
                       <Button
                         variant="secondary"
@@ -484,8 +486,8 @@ export default function Conflicts() {
                         Review
                       </Button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                />
               </section>
             ))}
         </div>

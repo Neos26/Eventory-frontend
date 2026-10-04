@@ -4,6 +4,7 @@ import PageHeader from '../components/PageHeader';
 import Card from '../components/Card';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
+import PaginatedList from '../components/PaginatedList';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import {
   fetchEventStatistics,
@@ -265,18 +266,21 @@ export default function Analytics() {
           {utilization.resources.length === 0 ? (
             <EmptyChart message="No resources tracked yet." />
           ) : (
-            <div className="space-y-3">
-              {utilization.resources.map((item) => (
+            <PaginatedList
+              items={utilization.resources}
+              itemKey={(item) => item._id}
+              pageSize={10}
+              className="space-y-3"
+              renderItem={(item) => (
                 <BarRow
-                  key={item._id}
                   label={item.name}
                   value={item.utilization}
                   max={100}
                   color={item.utilization >= 80 ? 'bg-amber-500' : 'bg-brand-500'}
                   suffix="%"
                 />
-              ))}
-            </div>
+              )}
+            />
           )}
         </ChartCard>
 

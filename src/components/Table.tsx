@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Card from './Card';
+import TablePagination from './TablePagination';
 
 export interface TableColumn<T> {
   key: string;
@@ -12,14 +13,37 @@ interface TableProps<T> {
   rows: T[];
   rowKey: (row: T) => string;
   emptyMessage?: string;
-  // Wrap cell text so the table never needs horizontal scrolling.
-  wrap?: boolean;
+  // Rows per page; pagination appears automatically when there is more than
+  // one page. Set to 0 to disable pagination entirely.
+  pageSize?: number;
 }
 
-// Generic table: a scrollable table on md+ screens and stacked cards on
-// mobile, so pages can drop it anywhere.
-export default function Table<T>({ columns, rows, rowKey, emptyMessage, wrap = false }: TableProps<T>) {
+const DEFAULT_PAGE_SIZE = 10;
+
+// Generic table: a full-width table on md+ screens and stacked cards on
+// mobile, with automatic pagination, so pages can drop it anywhere. Cell
+// text always wraps, so long names never force horizontal scrolling.
+export default function Table<T>({
+  columns,
+  rows,
+  rowKey,
+  emptyMessage,
+  pageSize = DEFAULT_PAGE_SIZE,
+}: TableProps<T>) {
   const empty = emptyMessage ?? 'No records found.';
+  const paginated = pageSize > 0;
+  const pageCount = paginated ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
+  const [page, setPage] = useState(1);
+
+  // Keep the current page valid when rows shrink (filtering, deletions).
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount));
+  }, [pageCount]);
+
+  const safePage = Math.min(page, pageCount);
+  const start = paginated ? (safePage - 1) * pageSize : 0;
+  const visibleRows = paginated ? rows.slice(start, start + pageSize) : rows;
+
   const [titleColumn, ...restColumns] = columns;
   const fieldColumns = restColumns.filter(
     (column) => column.header !== 'Actions' && column.header !== 'Action',
@@ -30,11 +54,7 @@ export default function Table<T>({ columns, rows, rowKey, emptyMessage, wrap = f
 
   return (
     <>
-      <div
-        className={`hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block ${
-          wrap ? '' : 'overflow-x-auto'
-        }`}
-      >
+      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm md:block">
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
@@ -50,21 +70,19 @@ export default function Table<T>({ columns, rows, rowKey, emptyMessage, wrap = f
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {rows.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-500">
                   {empty}
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              visibleRows.map((row) => (
                 <tr key={rowKey(row)} className="hover:bg-slate-50">
                   {columns.map((column) => (
                     <td
                       key={column.key}
-                      className={`px-4 py-3 text-sm text-slate-700 ${
-                        wrap ? 'break-words' : 'whitespace-nowrap'
-                      }`}
+                      className="break-words px-4 py-3 text-sm text-slate-700"
                     >
                       {column.render(row)}
                     </td>
@@ -77,12 +95,12 @@ export default function Table<T>({ columns, rows, rowKey, emptyMessage, wrap = f
       </div>
 
       <div className="space-y-3 md:hidden">
-        {rows.length === 0 ? (
+        {visibleRows.length === 0 ? (
           <Card>
             <p className="py-4 text-center text-sm text-slate-500">{empty}</p>
           </Card>
         ) : (
-          rows.map((row) => (
+          visibleRows.map((row) => (
             <Card key={rowKey(row)}>
               {titleColumn && (
                 <div className="break-words text-sm font-semibold text-slate-900">
@@ -116,6 +134,17 @@ export default function Table<T>({ columns, rows, rowKey, emptyMessage, wrap = f
           ))
         )}
       </div>
+
+      {paginated && (
+        <TablePagination
+          page={safePage}
+          pageCount={pageCount}
+          start={start + 1}
+          end={Math.min(start + pageSize, rows.length)}
+          total={rows.length}
+          onChange={setPage}
+        />
+      )}
     </>
   );
 }

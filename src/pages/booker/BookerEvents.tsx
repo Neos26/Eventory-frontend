@@ -9,6 +9,7 @@ import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import LoadingState from '../../components/LoadingState';
 import PageHeader from '../../components/PageHeader';
+import PaginatedList from '../../components/PaginatedList';
 import Select from '../../components/Select';
 import { EventStatusBadge } from '../../components/StatusBadges';
 import { formatDate, formatTime } from '../../utils/format';
@@ -141,9 +142,13 @@ export default function BookerEvents() {
           />
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visible.map((event) => (
-            <Card key={event._id} className="flex flex-col">
+        <PaginatedList
+          items={visible}
+          itemKey={(event) => event._id}
+          pageSize={9}
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          renderItem={(event) => (
+            <Card className="flex flex-col">
               <div className="flex items-start justify-between gap-3">
                 <Link
                   to={`/booker/events/${event._id}`}
@@ -194,8 +199,8 @@ export default function BookerEvents() {
                 </Link>
               </div>
             </Card>
-          ))}
-        </div>
+          )}
+        />
       )}
     </>
   );

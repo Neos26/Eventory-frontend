@@ -18,12 +18,14 @@ import LoadingState from '../../components/LoadingState';
 import Modal from '../../components/Modal';
 import PageHeader from '../../components/PageHeader';
 import { BookingStatusBadge } from '../../components/StatusBadges';
+import TablePagination from '../../components/TablePagination';
 import { formatDate } from '../../utils/format';
 import type { BookingRecord, BookingStatus } from '../../types/booking';
 
 type Filter = 'All' | BookingStatus;
 
 const FILTERS: Filter[] = ['All', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Completed'];
+const PAGE_SIZE = 10;
 
 export default function BookerBookings() {
   useDocumentTitle('My Bookings');
@@ -31,6 +33,7 @@ export default function BookerBookings() {
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [venueNames, setVenueNames] = useState<Map<string, string>>(new Map());
   const [filter, setFilter] = useState<Filter>('All');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -76,6 +79,16 @@ export default function BookerBookings() {
     () => (filter === 'All' ? bookings : bookings.filter((booking) => booking.status === filter)),
     [bookings, filter],
   );
+
+  // Changing the filter pill restarts at page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
+
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const visiblePage = visible.slice(pageStart, pageStart + PAGE_SIZE);
 
   const venueOf = (booking: BookingRecord): string => {
     const event = typeof booking.eventId === 'string' ? null : booking.eventId;
@@ -195,7 +208,7 @@ export default function BookerBookings() {
                 </tr>
               </thead>
               <tbody>
-                {visible.map((booking) => (
+                {visiblePage.map((booking) => (
                   <tr key={booking._id} className="border-b border-slate-100 last:border-0">
                     <td className="px-5 py-3.5">
                       <span className="font-medium text-slate-800">
@@ -254,7 +267,7 @@ export default function BookerBookings() {
 
           {/* Mobile cards */}
           <div className="space-y-3 md:hidden">
-            {visible.map((booking) => {
+            {visiblePage.map((booking) => {
               const event = typeof booking.eventId === 'string' ? null : booking.eventId;
               return (
                 <Card key={booking._id}>
@@ -303,6 +316,15 @@ export default function BookerBookings() {
               );
             })}
           </div>
+
+          <TablePagination
+            page={safePage}
+            pageCount={pageCount}
+            start={pageStart + 1}
+            end={Math.min(pageStart + PAGE_SIZE, visible.length)}
+            total={visible.length}
+            onChange={setPage}
+          />
         </>
       )}
 

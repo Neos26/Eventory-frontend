@@ -17,6 +17,7 @@ import type { TableColumn } from '../components/Table';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import EmptyState from '../components/EmptyState';
+import PaginatedList from '../components/PaginatedList';
 import { BookingStatusBadge } from '../components/StatusBadges';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { fetchManagementDashboard } from '../api/dashboardApi';
@@ -225,7 +226,6 @@ export default function Dashboard() {
             />
           ) : (
             <Table
-              wrap
               columns={requestColumns}
               rows={recentRequests}
               rowKey={(row) => row.booking._id}
@@ -286,11 +286,13 @@ export default function Dashboard() {
           {summary.resourceUtilization.resources.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-500">No resources tracked yet.</p>
           ) : (
-            <div className="space-y-3">
-              {summary.resourceUtilization.resources.map((item) => (
-                <ResourceBar key={item._id} item={item} />
-              ))}
-            </div>
+            <PaginatedList
+              items={summary.resourceUtilization.resources}
+              itemKey={(item) => item._id}
+              pageSize={10}
+              className="space-y-3"
+              renderItem={(item) => <ResourceBar item={item} />}
+            />
           )}
         </Card>
 
