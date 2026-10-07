@@ -122,6 +122,7 @@ export default function BookerEventForm({
 
       <Input
         label="Event Name"
+        required
         placeholder="e.g. Tech Summit 2027"
         error={errors.name?.message}
         {...register('name')}
@@ -152,6 +153,7 @@ export default function BookerEventForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Organization"
+          required
           options={organizationOptions}
           error={errors.organization?.message}
           {...register('organization')}
@@ -159,6 +161,7 @@ export default function BookerEventForm({
         <Input
           label="Date"
           type="date"
+          required
           error={errors.date?.message}
           {...register('date')}
         />
@@ -168,12 +171,14 @@ export default function BookerEventForm({
         <Input
           label="Start Time"
           type="time"
+          required
           error={errors.startTime?.message}
           {...register('startTime')}
         />
         <Input
           label="End Time"
           type="time"
+          required
           error={errors.endTime?.message}
           {...register('endTime')}
         />

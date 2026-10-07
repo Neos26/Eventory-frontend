@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Info,
   Layers,
   MapPin,
   Package,
@@ -175,7 +176,182 @@ export default function BookerEventDetail() {
         description={`${formatDate(event.startDate)} · ${formatTime(event.startDate)} – ${formatTime(event.endDate)}`}
       />
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      {/* Booking submission / status */}
+      <Card>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-semibold text-slate-900">Booking</h2>
+          {booking && <BookingStatusBadge status={booking.status} />}
+        </div>
+
+        {submitError && (
+          <div
+            role="alert"
+            className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {submitError}
+          </div>
+        )}
+
+        {booking ? (
+          <div className="space-y-4">
+            {booking.status === 'Pending' && (
+              <div className="flex items-start gap-3 rounded-xl bg-amber-50 px-4 py-3 text-amber-800">
+                <Clock3 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold">Pending management review</p>
+                  <p className="mt-0.5 text-xs">
+                    Submitted {formatDate(booking.submittedAt ?? booking.createdAt)}. Your request
+                    is queued for an administrator to approve or reject.{' '}
+                    <Link
+                      to="/booker/bookings"
+                      className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                    >
+                      Manage in My Bookings
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {booking.status === 'Approved' && (
+              <div className="flex items-start gap-3 rounded-xl bg-brand-50 px-4 py-3 text-brand-800">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold">Booking approved</p>
+                  <p className="mt-0.5 text-xs">
+                    Confirmed{booking.reviewedAt ? ` on ${formatDate(booking.reviewedAt)}` : ''} —
+                    your venue and resources are reserved.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {booking.status === 'Rejected' && (
+              <div className="flex items-start gap-3 rounded-xl bg-red-50 px-4 py-3 text-red-700">
+                <XCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold">Booking rejected</p>
+                  <p className="mt-0.5 text-xs">
+                    {booking.rejectionReason
+                      ? `Reason: ${booking.rejectionReason}`
+                      : 'No reason was provided.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {booking.status === 'Cancelled' && (
+              <div className="flex items-start gap-3 rounded-xl bg-slate-100 px-4 py-3 text-slate-700">
+                <Ban className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold">Booking cancelled</p>
+                  <p className="mt-0.5 text-xs">
+                    This request was cancelled. You can submit a new one.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {booking.status === 'Completed' && (
+              <div className="flex items-start gap-3 rounded-xl bg-brand-50 px-4 py-3 text-brand-800">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold">Booking completed</p>
+                  <p className="mt-0.5 text-xs">This event and its bookings are finished.</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+              <p className="text-xs text-slate-500">
+                Booking ID:{' '}
+                <span className="break-all font-mono">{booking._id}</span>
+              </p>
+              {canResubmit && (
+                <button
+                  type="button"
+                  onClick={handleSubmitBooking}
+                  disabled={submitting}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                  {submitting ? 'Submitting...' : 'Submit Again'}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <dl className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Event
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium text-slate-800">{event.name}</dd>
+              </div>
+              <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  When
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium text-slate-800">
+                  {formatDate(event.startDate)}, {formatTime(event.startDate)} –{' '}
+                  {formatTime(event.endDate)}
+                </dd>
+              </div>
+              <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Venue
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium text-slate-800">{venueLabel}</dd>
+              </div>
+              <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Resources / Conflicts
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium text-slate-800">
+                  {requirements.length} requested ·{' '}
+                  {conflicts?.conflicts.length ?? 0} conflict
+                  {(conflicts?.conflicts.length ?? 0) === 1 ? '' : 's'}
+                </dd>
+              </div>
+            </dl>
+
+            {!isReady && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                  Some issues are still open (see Readiness below). You can submit anyway, but
+                  management will likely reject a booking with conflicts.
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+              <span>
+                Submitting does <span className="font-semibold">not</span> hold or reserve any
+                stock — your requested resources stay available to everyone while the request is
+                pending. They are reserved for you only once management{' '}
+                <span className="font-semibold">approves</span> the booking.
+              </span>
+            </div>
+
+            <div className="flex justify-end border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={handleSubmitBooking}
+                disabled={submitting}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" aria-hidden="true" />
+                {submitting ? 'Submitting...' : 'Submit for Approval'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-5">
         {/* Left: information + resources */}
         <div className="space-y-6 lg:col-span-3">
           <Card>
@@ -442,171 +618,6 @@ export default function BookerEventDetail() {
           </Card>
         </div>
       </div>
-
-      {/* Booking submission / status */}
-      <Card className="mt-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold text-slate-900">Booking</h2>
-          {booking && <BookingStatusBadge status={booking.status} />}
-        </div>
-
-        {submitError && (
-          <div
-            role="alert"
-            className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-          >
-            {submitError}
-          </div>
-        )}
-
-        {booking ? (
-          <div className="space-y-4">
-            {booking.status === 'Pending' && (
-              <div className="flex items-start gap-3 rounded-xl bg-amber-50 px-4 py-3 text-amber-800">
-                <Clock3 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold">Pending management review</p>
-                  <p className="mt-0.5 text-xs">
-                    Submitted {formatDate(booking.submittedAt ?? booking.createdAt)}. Your request
-                    is queued for an administrator to approve or reject.{' '}
-                    <Link
-                      to="/booker/bookings"
-                      className="font-medium text-brand-700 underline-offset-2 hover:underline"
-                    >
-                      Manage in My Bookings
-                    </Link>
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {booking.status === 'Approved' && (
-              <div className="flex items-start gap-3 rounded-xl bg-brand-50 px-4 py-3 text-brand-800">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold">Booking approved</p>
-                  <p className="mt-0.5 text-xs">
-                    Confirmed{booking.reviewedAt ? ` on ${formatDate(booking.reviewedAt)}` : ''} —
-                    your venue and resources are reserved.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {booking.status === 'Rejected' && (
-              <div className="flex items-start gap-3 rounded-xl bg-red-50 px-4 py-3 text-red-700">
-                <XCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold">Booking rejected</p>
-                  <p className="mt-0.5 text-xs">
-                    {booking.rejectionReason
-                      ? `Reason: ${booking.rejectionReason}`
-                      : 'No reason was provided.'}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {booking.status === 'Cancelled' && (
-              <div className="flex items-start gap-3 rounded-xl bg-slate-100 px-4 py-3 text-slate-700">
-                <Ban className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold">Booking cancelled</p>
-                  <p className="mt-0.5 text-xs">
-                    This request was cancelled. You can submit a new one.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {booking.status === 'Completed' && (
-              <div className="flex items-start gap-3 rounded-xl bg-brand-50 px-4 py-3 text-brand-800">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold">Booking completed</p>
-                  <p className="mt-0.5 text-xs">This event and its bookings are finished.</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-              <p className="text-xs text-slate-500">
-                Booking ID:{' '}
-                <span className="break-all font-mono">{booking._id}</span>
-              </p>
-              {canResubmit && (
-                <button
-                  type="button"
-                  onClick={handleSubmitBooking}
-                  disabled={submitting}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Send className="h-4 w-4" aria-hidden="true" />
-                  {submitting ? 'Submitting...' : 'Submit Again'}
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Event
-                </dt>
-                <dd className="mt-0.5 text-sm font-medium text-slate-800">{event.name}</dd>
-              </div>
-              <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  When
-                </dt>
-                <dd className="mt-0.5 text-sm font-medium text-slate-800">
-                  {formatDate(event.startDate)}, {formatTime(event.startDate)} –{' '}
-                  {formatTime(event.endDate)}
-                </dd>
-              </div>
-              <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Venue
-                </dt>
-                <dd className="mt-0.5 text-sm font-medium text-slate-800">{venueLabel}</dd>
-              </div>
-              <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Resources / Conflicts
-                </dt>
-                <dd className="mt-0.5 text-sm font-medium text-slate-800">
-                  {requirements.length} requested ·{' '}
-                  {conflicts?.conflicts.length ?? 0} conflict
-                  {(conflicts?.conflicts.length ?? 0) === 1 ? '' : 's'}
-                </dd>
-              </div>
-            </dl>
-
-            {!isReady && (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>
-                  Some issues are still open (see Readiness above). You can submit anyway, but
-                  management will likely reject a booking with conflicts.
-                </span>
-              </div>
-            )}
-
-            <div className="flex justify-end border-t border-slate-100 pt-4">
-              <button
-                type="button"
-                onClick={handleSubmitBooking}
-                disabled={submitting}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Send className="h-4 w-4" aria-hidden="true" />
-                {submitting ? 'Submitting...' : 'Submit for Approval'}
-              </button>
-            </div>
-          </div>
-        )}
-      </Card>
     </>
   );
 }

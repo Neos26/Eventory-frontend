@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   createRequirement,
   deleteRequirement,
@@ -12,9 +12,11 @@ import {
   refId,
   updateRequirement,
 } from '../../api/eventApi';
-import { fetchResourceAvailability, fetchResources } from '../../api/resourceApi';
+import { fetchResourceAvailability, fetchResources, resourceStatus } from '../../api/resourceApi';
+import { RESOURCE_CATEGORIES, resourceCategoryLabel } from '../../schemas/resourceForm';
 import useDocumentTitle from '../../hooks/useDocumentTitle';
 import BackButton from '../../components/BackButton';
+import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
@@ -24,6 +26,7 @@ import LoadingState from '../../components/LoadingState';
 import Modal from '../../components/Modal';
 import PageHeader from '../../components/PageHeader';
 import PaginatedList from '../../components/PaginatedList';
+import SearchBar from '../../components/SearchBar';
 import Select from '../../components/Select';
 import { formatDate } from '../../utils/format';
 import type { EventRecord, RequirementRecord } from '../../types/event';
@@ -38,6 +41,23 @@ interface ShortageInfo {
   available: number;
   shortage: number;
 }
+
+const categoryFilterOptions = [
+  { value: 'all', label: 'All categories' },
+  ...RESOURCE_CATEGORIES.map((category) => ({
+    value: category,
+    label: resourceCategoryLabel(category),
+  })),
+];
+
+// Same vocabulary the management Resources page uses.
+const stockFilterOptions = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'active', label: 'In stock' },
+  { value: 'low_stock', label: 'Low stock' },
+  { value: 'out_of_stock', label: 'Out of stock' },
+  { value: 'inactive', label: 'Inactive' },
+];
 
 export default function BookerEventRequirements() {
   useDocumentTitle('Resource Requirements');
@@ -55,6 +75,10 @@ export default function BookerEventRequirements() {
   const [newQuantity, setNewQuantity] = useState('1');
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [pickerQuery, setPickerQuery] = useState('');
+  const [pickerCategory, setPickerCategory] = useState('all');
+  const [pickerStock, setPickerStock] = useState('all');
 
   const [editing, setEditing] = useState<RequirementRecord | null>(null);
   const [editQuantity, setEditQuantity] = useState('1');
@@ -127,6 +151,33 @@ export default function BookerEventRequirements() {
     const used = new Set(requirements.map((requirement) => refId(requirement.resource)));
     return resources.filter((resource) => !used.has(resource._id));
   }, [resources, requirements]);
+
+  // Picker list narrowed by search + category + stock filters.
+  const pickableResources = useMemo(() => {
+    const search = pickerQuery.trim().toLowerCase();
+    return availableResources.filter((resource) => {
+      if (pickerCategory !== 'all' && resource.category !== pickerCategory) return false;
+      if (pickerStock !== 'all' && resourceStatus(resource).key !== pickerStock) return false;
+      if (!search) return true;
+      return [resource.name, resourceCategoryLabel(resource.category), resource.unit ?? '']
+        .join(' ')
+        .toLowerCase()
+        .includes(search);
+    });
+  }, [availableResources, pickerQuery, pickerCategory, pickerStock]);
+
+  // Keep the dropdown selection valid when filters hide the chosen resource.
+  useEffect(() => {
+    if (newResourceId && !pickableResources.some((resource) => resource._id === newResourceId)) {
+      setNewResourceId('');
+    }
+  }, [pickableResources, newResourceId]);
+
+  const clearPickerFilters = () => {
+    setPickerQuery('');
+    setPickerCategory('all');
+    setPickerStock('all');
+  };
 
   const handleAdd = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -332,6 +383,16 @@ export default function BookerEventRequirements() {
       <Card className="mt-6">
         <h2 className="mb-4 font-semibold text-slate-900">Add a resource</h2>
 
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+          <span>
+            Requesting a resource here does <span className="font-semibold">not</span> reserve or
+            hold it — stock stays available to everyone while your booking is pending. Quantities
+            are only reserved for you once management <span className="font-semibold">approves</span>{' '}
+            the booking.
+          </span>
+        </div>
+
         {resources.length === 0 ? (
           <p className="text-sm text-slate-500">
             No resources are registered yet. Ask management to add inventory first.
@@ -339,36 +400,113 @@ export default function BookerEventRequirements() {
         ) : availableResources.length === 0 ? (
           <p className="text-sm text-slate-500">Every resource is already requested.</p>
         ) : (
-          <form onSubmit={handleAdd} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <Select
-                label="Resource"
-                options={[
-                  { value: '', label: 'Select a resource...' },
-                  ...availableResources.map((resource) => ({
-                    value: resource._id,
-                    label: `${resource.name} (${resource.quantityTotal} in stock)`,
-                  })),
-                ]}
-                value={newResourceId}
-                onChange={(changeEvent) => setNewResourceId(changeEvent.target.value)}
+          <>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <SearchBar
+                value={pickerQuery}
+                onChange={setPickerQuery}
+                placeholder="Search resources..."
               />
+              <div className="w-full sm:w-48">
+                <Select
+                  aria-label="Filter by category"
+                  value={pickerCategory}
+                  onChange={(changeEvent) => setPickerCategory(changeEvent.target.value)}
+                  options={categoryFilterOptions}
+                />
+              </div>
+              <div className="w-full sm:w-48">
+                <Select
+                  aria-label="Filter by stock status"
+                  value={pickerStock}
+                  onChange={(changeEvent) => setPickerStock(changeEvent.target.value)}
+                  options={stockFilterOptions}
+                />
+              </div>
+              <span className="text-sm text-slate-500">
+                {pickableResources.length} of {availableResources.length} resource
+                {availableResources.length === 1 ? '' : 's'}
+              </span>
             </div>
-            <div className="w-full sm:w-32">
-              <Input
-                label="Quantity"
-                type="number"
-                min={1}
-                step={1}
-                value={newQuantity}
-                onChange={(changeEvent) => setNewQuantity(changeEvent.target.value)}
-              />
-            </div>
-            <Button type="submit" disabled={saving || !newResourceId}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              {saving ? 'Adding...' : 'Add'}
-            </Button>
-          </form>
+
+            {pickableResources.length === 0 ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm text-slate-500">
+                  No resources match your search or filters.
+                </p>
+                <Button variant="secondary" size="sm" onClick={clearPickerFilters}>
+                  Clear filters
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="mb-1 block text-sm font-medium text-slate-700">Resource</p>
+                <PaginatedList
+                  items={pickableResources}
+                  itemKey={(resource) => resource._id}
+                  pageSize={12}
+                  className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                  renderItem={(resource) => {
+                    const status = resourceStatus(resource);
+                    const selected = resource._id === newResourceId;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setNewResourceId(resource._id)}
+                        aria-pressed={selected}
+                        className={`cursor-pointer rounded-xl border p-4 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                          selected
+                            ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600'
+                            : 'border-slate-200 bg-white hover:border-brand-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="min-w-0 break-words font-medium text-slate-900">
+                            {resource.name}
+                          </p>
+                          {selected && (
+                            <CheckCircle2
+                              className="h-5 w-5 shrink-0 text-brand-600"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {resourceCategoryLabel(resource.category)} · {resource.quantityTotal} in
+                          stock
+                        </p>
+                        <span className="mt-2 inline-block">
+                          <Badge tone={status.tone}>{status.label}</Badge>
+                        </span>
+                      </button>
+                    );
+                  }}
+                />
+
+                <form
+                  onSubmit={handleAdd}
+                  noValidate
+                  className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end"
+                >
+                  <div className="w-full sm:w-32">
+                    <Input
+                      label="Quantity"
+                      required
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={newQuantity}
+                      onChange={(changeEvent) => setNewQuantity(changeEvent.target.value)}
+                    />
+                  </div>
+                  <Button type="submit" disabled={saving || !newResourceId}>
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    {saving ? 'Adding...' : 'Add'}
+                  </Button>
+                </form>
+              </>
+            )}
+          </>
         )}
       </Card>
 
@@ -392,6 +530,7 @@ export default function BookerEventRequirements() {
       >
         <Input
           label="Quantity"
+          required
           type="number"
           min={1}
           step={1}
