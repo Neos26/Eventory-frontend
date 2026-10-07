@@ -70,6 +70,7 @@ export default function EventForm({
         <div className="sm:col-span-2">
           <Input
             label="Event name"
+            required
             name="name"
             value={values.name}
             onChange={(event) => setField('name', event.target.value)}
@@ -81,6 +82,7 @@ export default function EventForm({
 
         <Select
           label="Organization"
+          required
           name="organization"
           value={values.organization}
           onChange={(event) => setField('organization', event.target.value)}
@@ -108,6 +110,7 @@ export default function EventForm({
 
         <Input
           label="Date"
+          required
           name="date"
           type="date"
           value={values.date}
@@ -129,6 +132,7 @@ export default function EventForm({
 
         <Input
           label="Start time"
+          required
           name="startTime"
           type="time"
           value={values.startTime}
@@ -138,6 +142,7 @@ export default function EventForm({
 
         <Input
           label="End time"
+          required
           name="endTime"
           type="time"
           value={values.endTime}

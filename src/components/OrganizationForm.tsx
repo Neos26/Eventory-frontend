@@ -62,6 +62,7 @@ export default function OrganizationForm({
         <div className="sm:col-span-2">
           <Input
             label="Organization name"
+            required
             name="organizationName"
             value={values.name}
             onChange={(event) => setField('name', event.target.value)}

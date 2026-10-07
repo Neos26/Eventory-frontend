@@ -149,7 +149,7 @@ export default function Register() {
 
             <div>
               <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-700">
-                Full name
+                Full name <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="relative">
                 <User
@@ -159,6 +159,7 @@ export default function Register() {
                 <input
                   id="name"
                   type="text"
+                  required
                   autoComplete="name"
                   placeholder="Juan Dela Cruz"
                   className={fieldClass(Boolean(errors.name))}
@@ -170,7 +171,7 @@ export default function Register() {
 
             <div>
               <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
-                Email
+                Email <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="relative">
                 <Mail
@@ -180,6 +181,7 @@ export default function Register() {
                 <input
                   id="email"
                   type="email"
+                  required
                   autoComplete="email"
                   placeholder="you@eventory.edu"
                   className={fieldClass(Boolean(errors.email))}
@@ -191,7 +193,7 @@ export default function Register() {
 
             <div>
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
-                Password
+                Password <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="relative">
                 <LockKeyhole
@@ -201,6 +203,7 @@ export default function Register() {
                 <input
                   id="password"
                   type="password"
+                  required
                   autoComplete="new-password"
                   placeholder="At least 6 characters"
                   className={fieldClass(Boolean(errors.password))}
@@ -217,7 +220,7 @@ export default function Register() {
                 htmlFor="confirmPassword"
                 className="mb-1 block text-sm font-medium text-slate-700"
               >
-                Confirm password
+                Confirm password <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="relative">
                 <LockKeyhole
@@ -227,6 +230,7 @@ export default function Register() {
                 <input
                   id="confirmPassword"
                   type="password"
+                  required
                   autoComplete="new-password"
                   placeholder="Repeat your password"
                   className={fieldClass(Boolean(errors.confirmPassword))}

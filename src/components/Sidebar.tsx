@@ -30,6 +30,7 @@ const managementSections: NavSection[] = [
     title: 'Monitoring',
     items: [
       { to: '/management/events', label: 'Events' },
+      { to: '/management/reservations', label: 'Reservations' },
       { to: '/management/conflicts', label: 'Conflicts' },
       { to: '/management/analytics', label: 'Analytics' },
     ],

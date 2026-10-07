@@ -4,7 +4,7 @@ import type { EventStatus } from './eventApi';
 
 const unwrap = <T>(response: { data: { data: T } }): T => response.data.data;
 
-// ---------- GET /api/events/statistics ----------
+//GET /api/events/statistics
 
 export interface StatusCount {
   status: EventStatus;
@@ -17,7 +17,7 @@ export interface OrganizationCount {
 }
 
 export interface MonthCount {
-  month: string; // YYYY-MM
+  month: string;
   count: number;
 }
 
@@ -28,7 +28,7 @@ export interface EventStatistics {
   monthly: MonthCount[];
 }
 
-// ---------- GET /api/resources/utilization ----------
+//GET /api/resources/utilization
 
 export interface ResourceUtilization {
   _id: string;
@@ -38,7 +38,7 @@ export interface ResourceUtilization {
   total: number;
   reserved: number;
   available: number;
-  utilization: number; // percent 0-100
+  utilization: number;
 }
 
 export interface UtilizationSummary {

@@ -133,6 +133,7 @@ export default function ReservationForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Select
           label="Event"
+          required
           name="eventId"
           value={values.eventId}
           onChange={(event) => setField('eventId', event.target.value)}
@@ -146,6 +147,7 @@ export default function ReservationForm({
         <div>
           <Select
             label="Resource"
+            required
             name="resourceId"
             value={values.resourceId}
             onChange={(event) => setField('resourceId', event.target.value)}
@@ -171,6 +173,7 @@ export default function ReservationForm({
 
         <Input
           label="Quantity"
+          required
           name="quantity"
           type="number"
           min={1}
@@ -183,6 +186,7 @@ export default function ReservationForm({
 
         <Input
           label="Date"
+          required
           name="date"
           type="date"
           value={values.date}
@@ -192,6 +196,7 @@ export default function ReservationForm({
 
         <Input
           label="Start time"
+          required
           name="startTime"
           type="time"
           value={values.startTime}
@@ -201,6 +206,7 @@ export default function ReservationForm({
 
         <Input
           label="End time"
+          required
           name="endTime"
           type="time"
           value={values.endTime}

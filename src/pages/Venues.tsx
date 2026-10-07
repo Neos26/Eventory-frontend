@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import Badge from '../components/Badge';
 import Button from '../components/Button';
+import EmptyState from '../components/EmptyState';
+import FilterPanel from '../components/FilterPanel';
 import Modal from '../components/Modal';
 import SearchBar from '../components/SearchBar';
+import Select from '../components/Select';
 import Table from '../components/Table';
 import type { TableColumn } from '../components/Table';
 import VenueForm from '../components/VenueForm';
@@ -31,6 +34,33 @@ function formatAddress(venue: VenueRecord): string {
   return parts.length > 0 ? parts.join(', ') : '—';
 }
 
+const typeFilterOptions = [
+  { value: 'all', label: 'All types' },
+  { value: 'indoor', label: 'Indoor' },
+  { value: 'outdoor', label: 'Outdoor' },
+  { value: 'hybrid', label: 'Hybrid' },
+];
+
+const availabilityFilterOptions = [
+  { value: 'all', label: 'All availability' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+];
+
+const capacityFilterOptions = [
+  { value: 'all', label: 'Any capacity' },
+  { value: 'small', label: 'Under 50' },
+  { value: 'medium', label: '50 – 199' },
+  { value: 'large', label: '200 – 499' },
+  { value: 'xl', label: '500 or more' },
+];
+
+const usageFilterOptions = [
+  { value: 'all', label: 'Any usage' },
+  { value: 'booked', label: 'Has upcoming events' },
+  { value: 'free', label: 'No upcoming events' },
+];
+
 export default function Venues() {
   useDocumentTitle('Venues');
 
@@ -40,6 +70,10 @@ export default function Venues() {
   const [error, setError] = useState<string | null>(null);
 
   const [query, setQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [availabilityFilter, setAvailabilityFilter] = useState('all');
+  const [capacityFilter, setCapacityFilter] = useState('all');
+  const [usageFilter, setUsageFilter] = useState('all');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<VenueRecord | null>(null);
@@ -87,14 +121,42 @@ export default function Venues() {
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
-    if (!search) return venues;
-    return venues.filter((venue) =>
-      [venue.name, formatAddress(venue), venue.venueType ?? '']
+    return venues.filter((venue) => {
+      if (typeFilter !== 'all' && venue.venueType !== typeFilter) return false;
+      const active = venue.isActive !== false;
+      if (availabilityFilter === 'active' && !active) return false;
+      if (availabilityFilter === 'inactive' && active) return false;
+      const capacity = venue.capacity ?? 0;
+      if (capacityFilter === 'small' && capacity >= 50) return false;
+      if (capacityFilter === 'medium' && (capacity < 50 || capacity >= 200)) return false;
+      if (capacityFilter === 'large' && (capacity < 200 || capacity >= 500)) return false;
+      if (capacityFilter === 'xl' && capacity < 500) return false;
+      if (usageFilter !== 'all') {
+        const hasUpcoming = (upcomingByVenue[venue._id] ?? 0) > 0;
+        if (usageFilter === 'booked' && !hasUpcoming) return false;
+        if (usageFilter === 'free' && hasUpcoming) return false;
+      }
+      if (!search) return true;
+      return [venue.name, formatAddress(venue), venue.venueType ?? '']
         .join(' ')
         .toLowerCase()
-        .includes(search),
-    );
-  }, [venues, query]);
+        .includes(search);
+    });
+  }, [venues, query, typeFilter, availabilityFilter, capacityFilter, usageFilter, upcomingByVenue]);
+
+  const activeFilters =
+    (typeFilter !== 'all' ? 1 : 0) +
+    (availabilityFilter !== 'all' ? 1 : 0) +
+    (capacityFilter !== 'all' ? 1 : 0) +
+    (usageFilter !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setQuery('');
+    setTypeFilter('all');
+    setAvailabilityFilter('all');
+    setCapacityFilter('all');
+    setUsageFilter('all');
+  };
 
   const handleSubmitForm = async (payload: VenuePayload) => {
     setFormSubmitting(true);
@@ -209,12 +271,50 @@ export default function Venues() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <SearchBar value={query} onChange={setQuery} placeholder="Search venues..." />
-        <span className="text-sm text-slate-500">
-          {filtered.length} of {venues.length} venue{venues.length === 1 ? '' : 's'}
-        </span>
-      </div>
+      <FilterPanel
+        search={
+          <div className="flex flex-wrap items-center gap-3">
+            <SearchBar value={query} onChange={setQuery} placeholder="Search venues..." />
+            <span className="text-sm text-slate-500">
+              {filtered.length} of {venues.length} venue{venues.length === 1 ? '' : 's'}
+            </span>
+          </div>
+        }
+        activeCount={activeFilters}
+      >
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by venue type"
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+            options={typeFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by availability"
+            value={availabilityFilter}
+            onChange={(event) => setAvailabilityFilter(event.target.value)}
+            options={availabilityFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <Select
+            aria-label="Filter by capacity"
+            value={capacityFilter}
+            onChange={(event) => setCapacityFilter(event.target.value)}
+            options={capacityFilterOptions}
+          />
+        </div>
+        <div className="w-full sm:w-48">
+          <Select
+            aria-label="Filter by usage"
+            value={usageFilter}
+            onChange={(event) => setUsageFilter(event.target.value)}
+            options={usageFilterOptions}
+          />
+        </div>
+      </FilterPanel>
 
       {actionError && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -222,12 +322,32 @@ export default function Venues() {
         </div>
       )}
 
-      <Table
-        columns={columns}
-        rows={filtered}
-        rowKey={(row) => row._id}
-        emptyMessage={venues.length === 0 ? 'No venues yet.' : 'No venues match your search.'}
-      />
+      {venues.length === 0 ? (
+        <EmptyState
+          title="No venues yet"
+          description="Add your first venue so events can be booked into it."
+          action={
+            <Button onClick={() => { setFormError(null); setCreateOpen(true); }}>Add Venue</Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title="No matching venues"
+          description="Try a different search term or filters."
+          action={
+            <Button variant="secondary" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          }
+        />
+      ) : (
+        <Table
+          columns={columns}
+          rows={filtered}
+          rowKey={(row) => row._id}
+          emptyMessage="No venues found."
+        />
+      )}
 
       <Modal
         open={createOpen}

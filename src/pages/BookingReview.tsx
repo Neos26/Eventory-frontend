@@ -670,7 +670,7 @@ export default function BookingReview() {
           required.
         </p>
         <label htmlFor="rejectionReason" className="mb-1 block text-sm font-medium text-slate-700">
-          Rejection Reason
+          Rejection Reason <span className="text-red-500" aria-hidden="true">*</span>
         </label>
         <textarea
           id="rejectionReason"

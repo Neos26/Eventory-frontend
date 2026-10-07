@@ -64,6 +64,7 @@ export default function ResourceForm({
         <div className="sm:col-span-2">
           <Input
             label="Resource name"
+            required
             name="resourceName"
             value={values.name}
             onChange={(event) => setField('name', event.target.value)}
@@ -75,6 +76,7 @@ export default function ResourceForm({
 
         <Select
           label="Category"
+          required
           name="resourceCategory"
           value={values.category}
           onChange={(event) => setField('category', event.target.value)}
@@ -93,6 +95,7 @@ export default function ResourceForm({
 
         <Input
           label="Total quantity"
+          required
           name="quantityTotal"
           type="number"
           min={0}

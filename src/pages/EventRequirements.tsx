@@ -354,10 +354,11 @@ export default function EventRequirements() {
       />
 
       <Card>
-        <form onSubmit={(formEvent) => void handleAdd(formEvent)} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <form onSubmit={(formEvent) => void handleAdd(formEvent)} noValidate className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Select
               label="Resource"
+              required
               value={newResourceId}
               onChange={(changeEvent) => {
                 setNewResourceId(changeEvent.target.value);
@@ -369,6 +370,7 @@ export default function EventRequirements() {
           <div className="w-full sm:w-32">
             <Input
               label="Quantity"
+              required
               type="number"
               min={1}
               step={1}
@@ -432,6 +434,7 @@ export default function EventRequirements() {
         <div className="space-y-4">
           <Select
             label="Resource"
+            required
             value={editForm.resourceId}
             onChange={(changeEvent) => {
               setEditForm((previous) => ({ ...previous, resourceId: changeEvent.target.value }));
@@ -441,6 +444,7 @@ export default function EventRequirements() {
           />
           <Input
             label="Quantity"
+            required
             type="number"
             min={1}
             step={1}

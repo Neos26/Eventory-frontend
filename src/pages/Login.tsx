@@ -102,7 +102,7 @@ export default function Login() {
 
             <div>
               <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
-                Email
+                Email <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="relative">
                 <Mail
@@ -112,6 +112,7 @@ export default function Login() {
                 <input
                   id="email"
                   type="email"
+                  required
                   autoComplete="email"
                   placeholder="you@eventory.edu"
                   className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
@@ -125,7 +126,7 @@ export default function Login() {
 
             <div>
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
-                Password
+                Password <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="relative">
                 <LockKeyhole
@@ -135,6 +136,7 @@ export default function Login() {
                 <input
                   id="password"
                   type="password"
+                  required
                   autoComplete="current-password"
                   placeholder="Your password"
                   className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${

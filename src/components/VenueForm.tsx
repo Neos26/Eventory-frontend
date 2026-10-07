@@ -63,6 +63,7 @@ export default function VenueForm({
         <div className="sm:col-span-2">
           <Input
             label="Venue name"
+            required
             name="venueName"
             value={values.name}
             onChange={(event) => setField('name', event.target.value)}
@@ -74,6 +75,7 @@ export default function VenueForm({
 
         <Input
           label="Capacity"
+          required
           name="capacity"
           type="number"
           min={0}
@@ -86,6 +88,7 @@ export default function VenueForm({
 
         <Select
           label="Venue type"
+          required
           name="venueType"
           value={values.venueType}
           onChange={(event) => setField('venueType', event.target.value)}
