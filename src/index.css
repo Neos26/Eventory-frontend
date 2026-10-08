@@ -1,9 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 
-/* Eventory design system - OpenAI neutral baseline (quiet developer utility):
-   warm monochrome surfaces, hierarchy from type, spacing and hairlines, with
-   the signal green kept as a sparse accent for focus, success and brand hints. */
+
 @theme {
   /* Warm neutral scale - paper / canvas / line / slate / ink */
   --color-slate-50: #f7f7f5;
