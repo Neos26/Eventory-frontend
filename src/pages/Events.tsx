@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
-import Badge from '../components/Badge';
 import Table from '../components/Table';
 import type { TableColumn } from '../components/Table';
 import SearchBar from '../components/SearchBar';
@@ -13,6 +12,7 @@ import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import Modal from '../components/Modal';
+import { BookingStatusBadge } from '../components/StatusBadges';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import {
   deleteEvent,
@@ -23,26 +23,18 @@ import {
   refId,
   resolveName,
 } from '../api/eventApi';
-import type { EventRecord, EventStatus, OrganizationRecord, VenueRecord } from '../api/eventApi';
-import { fetchBookings } from '../api/bookingApi';
-import type { BookingRecord } from '../api/bookingApi';
+import type { EventRecord, OrganizationRecord, VenueRecord } from '../api/eventApi';
+import { bookingEventId, fetchBookings } from '../api/bookingApi';
+import type { BookingRecord, BookingStatus } from '../api/bookingApi';
 import { formatDate, formatTime, withinDateRange } from '../utils/format';
-
-const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
-  draft: 'gray',
-  planned: 'indigo',
-  ongoing: 'green',
-  completed: 'gray',
-  cancelled: 'red',
-};
 
 const statusOptions = [
   { value: 'all', label: 'All statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'planned', label: 'Planned' },
-  { value: 'ongoing', label: 'Ongoing' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Approved', label: 'Approved' },
+  { value: 'Rejected', label: 'Rejected' },
+  { value: 'Cancelled', label: 'Cancelled' },
+  { value: 'Completed', label: 'Completed' },
 ];
 
 export default function Events() {
@@ -105,9 +97,21 @@ export default function Events() {
     const map = new Map<string, string>();
     for (const booking of bookings) {
       if (typeof booking.eventId === 'string' || typeof booking.bookerId === 'string') continue;
+      if (!booking.eventId || !booking.bookerId) continue;
       if (!map.has(booking.eventId._id)) {
         map.set(booking.eventId._id, booking.bookerId.name);
       }
+    }
+    return map;
+  }, [bookings]);
+
+  // Event id -> booking status. The API returns newest bookings first, so
+  // the first booking seen for an event is the one displayed.
+  const bookingByEvent = useMemo(() => {
+    const map = new Map<string, BookingStatus>();
+    for (const booking of bookings) {
+      const eventId = bookingEventId(booking);
+      if (!map.has(eventId)) map.set(eventId, booking.status);
     }
     return map;
   }, [bookings]);
@@ -131,7 +135,7 @@ export default function Events() {
   const filteredEvents = useMemo(() => {
     const search = query.trim().toLowerCase();
     return events.filter((event) => {
-      if (statusFilter !== 'all' && event.status !== statusFilter) return false;
+      if (statusFilter !== 'all' && bookingByEvent.get(event._id) !== statusFilter) return false;
       if (orgFilter !== 'all' && refId(event.organization) !== orgFilter) return false;
       if (venueFilter !== 'all' && refId(event.venue) !== venueFilter) return false;
       if (!withinDateRange(event.startDate, dateFrom, dateTo)) return false;
@@ -157,6 +161,7 @@ export default function Events() {
     orgNames,
     venueNames,
     bookerByEvent,
+    bookingByEvent,
   ]);
 
   const activeFilters =
@@ -217,7 +222,14 @@ export default function Events() {
     {
       key: 'status',
       header: 'Status',
-      render: (row) => <Badge tone={statusTones[row.status]}>{row.status}</Badge>,
+      render: (row) => {
+        const bookingStatus = bookingByEvent.get(row._id);
+        return bookingStatus ? (
+          <BookingStatusBadge status={bookingStatus} />
+        ) : (
+          <span className="text-slate-400">—</span>
+        );
+      },
     },
     {
       key: 'actions',
@@ -250,7 +262,7 @@ export default function Events() {
     <>
       <PageHeader
         title="Events"
-        description="All events with their status, dates and venue."
+        description="All events with their booking status, dates and venue."
         actions={
           <Button onClick={() => navigate('/management/events/create')}>New Event</Button>
         }

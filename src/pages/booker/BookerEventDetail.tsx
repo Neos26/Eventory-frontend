@@ -167,6 +167,11 @@ export default function BookerEventDetail() {
 
   const isReady = readiness?.ready ?? false;
   const canResubmit = booking !== null && (booking.status === 'Rejected' || booking.status === 'Cancelled');
+  // Ended and terminal events cannot take a new request until the dates
+  // are updated (the backend refuses submissions on ended events too).
+  const eventEnded = new Date(event.endDate).getTime() < Date.now();
+  const eventClosed = event.status === 'completed' || event.status === 'cancelled';
+  const submitBlocked = eventEnded || eventClosed;
 
   return (
     <>
@@ -262,12 +267,39 @@ export default function BookerEventDetail() {
               </div>
             )}
 
+            {submitBlocked && canResubmit && (
+              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold">
+                    {eventClosed ? 'This event is closed' : 'This event has ended'}
+                  </p>
+                  <p className="mt-0.5 text-xs">
+                    {eventClosed
+                      ? 'Completed or cancelled events do not accept new bookings.'
+                      : 'Update the dates and details before submitting a new request.'}
+                    {!eventClosed && (
+                      <>
+                        {' '}
+                        <Link
+                          to={`/booker/events/${id}/edit`}
+                          className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                        >
+                          Edit event
+                        </Link>
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
               <p className="text-xs text-slate-500">
                 Booking ID:{' '}
                 <span className="break-all font-mono">{booking._id}</span>
               </p>
-              {canResubmit && (
+              {canResubmit && !submitBlocked && (
                 <button
                   type="button"
                   onClick={handleSubmitBooking}
@@ -337,15 +369,34 @@ export default function BookerEventDetail() {
             </div>
 
             <div className="flex justify-end border-t border-slate-100 pt-4">
-              <button
-                type="button"
-                onClick={handleSubmitBooking}
-                disabled={submitting}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Send className="h-4 w-4" aria-hidden="true" />
-                {submitting ? 'Submitting...' : 'Submit for Approval'}
-              </button>
+              {submitBlocked ? (
+                <div className="flex w-full items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    {eventClosed
+                      ? 'This event is closed — completed or cancelled events do not accept new bookings.'
+                      : 'This event has already ended. Update the event dates before submitting a booking.'}{' '}
+                    {!eventClosed && (
+                      <Link
+                        to={`/booker/events/${id}/edit`}
+                        className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                      >
+                        Edit event
+                      </Link>
+                    )}
+                  </span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmitBooking}
+                  disabled={submitting}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                  {submitting ? 'Submitting...' : 'Submit for Approval'}
+                </button>
+              )}
             </div>
           </div>
         )}

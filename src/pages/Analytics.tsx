@@ -25,11 +25,11 @@ import type { VenueRecord } from '../api/venueApi';
 
 // Bar colors per status (matches the Badge tones used elsewhere).
 const statusColors: Record<string, string> = {
-  draft: 'bg-slate-400',
-  planned: 'bg-indigo-500',
-  ongoing: 'bg-emerald-500',
+  pending: 'bg-amber-500',
+  approved: 'bg-brand-500',
+  rejected: 'bg-red-400',
   completed: 'bg-slate-600',
-  cancelled: 'bg-red-400',
+  cancelled: 'bg-slate-400',
 };
 
 const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);

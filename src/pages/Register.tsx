@@ -28,6 +28,14 @@ const registerSchema = z
         message: 'Passwords do not match',
       });
     }
+    // A booker belongs to a single organization - events are filed under it.
+    if (values.role === 'booker' && !values.organizationId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['organizationId'],
+        message: 'Organization is required for booker accounts',
+      });
+    }
   });
 
 type RegisterValues = z.infer<typeof registerSchema>;
@@ -42,6 +50,7 @@ export default function Register() {
   const {
     register: registerField,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -55,7 +64,9 @@ export default function Register() {
     },
   });
 
-  // Organizations are public - fetched so new users can optionally join one.
+  const role = watch('role');
+
+  // Organizations are public - fetched so bookers can join one at signup.
   useEffect(() => {
     let cancelled = false;
     fetchOrganizations()
@@ -272,7 +283,14 @@ export default function Register() {
                   htmlFor="organizationId"
                   className="mb-1 block text-sm font-medium text-slate-700"
                 >
-                  Organization <span className="font-normal text-slate-400">(optional)</span>
+                  Organization{' '}
+                  {role === 'booker' ? (
+                    <span className="text-red-500" aria-hidden="true">
+                      *
+                    </span>
+                  ) : (
+                    <span className="font-normal text-slate-400">(optional)</span>
+                  )}
                 </label>
                 <div className="relative">
                   <Building2
@@ -281,10 +299,12 @@ export default function Register() {
                   />
                   <select
                     id="organizationId"
-                    className={`${fieldClass(false)} cursor-pointer appearance-none pr-9`}
+                    className={`${fieldClass(Boolean(errors.organizationId))} cursor-pointer appearance-none pr-9`}
                     {...registerField('organizationId')}
                   >
-                    <option value="">No organization</option>
+                    <option value="">
+                      {role === 'booker' ? 'Select an organization' : 'No organization'}
+                    </option>
                     {organizations.map((organization) => (
                       <option key={organization._id} value={organization._id}>
                         {organization.name}
@@ -296,6 +316,11 @@ export default function Register() {
                     aria-hidden="true"
                   />
                 </div>
+                {errors.organizationId && (
+                  <p role="alert" className="mt-1 text-xs text-red-600">
+                    {errors.organizationId.message}
+                  </p>
+                )}
               </div>
             )}
 

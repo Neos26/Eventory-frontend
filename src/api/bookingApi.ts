@@ -45,12 +45,15 @@ export function approvalConflictsOf(error: unknown): BookingConflict[] | null {
 }
 
 // Bookings store a populated event; this reads it from either shape.
+// Bookings whose event was deleted populate as null and are treated as unknown.
 export function bookingEvent(booking: BookingRecord): BookingEventRef | null {
-  return typeof booking.eventId === 'string' ? null : booking.eventId;
+  if (typeof booking.eventId === 'string' || booking.eventId == null) return null;
+  return booking.eventId;
 }
 
 export function bookingEventId(booking: BookingRecord): string {
-  return typeof booking.eventId === 'string' ? booking.eventId : booking.eventId._id;
+  if (typeof booking.eventId === 'string') return booking.eventId;
+  return booking.eventId?._id ?? '';
 }
 
 export function bookingEventName(booking: BookingRecord): string {

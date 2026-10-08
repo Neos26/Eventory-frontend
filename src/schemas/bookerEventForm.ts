@@ -76,10 +76,8 @@ export function eventToBookerFormValues(event: EventRecord): BookerEventFormValu
 }
 
 // Combine the date + time fields into ISO timestamps for the API.
-export function bookerEventFormToPayload(
-  values: BookerEventFormValues,
-  status: EventRecord['status'] = 'draft',
-): EventPayload {
+// Status is not sent: the backend derives it from the booking.
+export function bookerEventFormToPayload(values: BookerEventFormValues): EventPayload {
   const startDate = new Date(`${values.date}T${values.startTime}:00`);
   const endDate = new Date(`${values.date}T${values.endTime}:00`);
 
@@ -90,6 +88,5 @@ export function bookerEventFormToPayload(
     ...(values.description?.trim() && { description: values.description.trim() }),
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
-    status,
   };
 }

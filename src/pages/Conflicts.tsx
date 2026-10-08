@@ -45,9 +45,9 @@ interface ConflictItem {
 }
 
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
-  draft: 'gray',
-  planned: 'indigo',
-  ongoing: 'green',
+  pending: 'gray',
+  approved: 'indigo',
+  rejected: 'red',
   completed: 'gray',
   cancelled: 'red',
 };
@@ -83,7 +83,7 @@ function normalizeConflicts(
     const primary = {
       id: scan.event.id,
       name: scan.event.name,
-      status: primaryRecord?.status ?? 'draft',
+      status: primaryRecord?.status ?? 'pending',
     };
     const primaryVenueId =
       typeof primaryRecord?.venue === 'string' ? primaryRecord.venue : null;
@@ -192,8 +192,10 @@ export default function Conflicts() {
       ]);
       const venueNames = new Map(venueList.map((venue: VenueRecord) => [venue._id, venue.name]));
 
-      // Scan every event that is not cancelled for conflicts.
-      const active = eventList.filter((event) => event.status !== 'cancelled');
+      // Scan every event that still holds venue/schedule/stock resources.
+      const active = eventList.filter(
+        (event) => event.status !== 'cancelled' && event.status !== 'completed',
+      );
       const scans = await Promise.all(active.map((event) => fetchEventConflicts(event._id)));
 
       const eventsById = new Map(eventList.map((event) => [event._id, event]));

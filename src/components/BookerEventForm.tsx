@@ -36,6 +36,10 @@ export default function BookerEventForm({
   onSubmit,
 }: BookerEventFormProps) {
   const { user } = useAuth();
+  // A booker belongs to a single organization: when the account has one,
+  // the field is locked to it (legacy accounts without an organization
+  // keep the picker).
+  const lockedOrganizationId = user?.organizationId ?? null;
   const [organizations, setOrganizations] = useState<OrganizationRecord[]>([]);
   const [orgError, setOrgError] = useState<string | null>(null);
 
@@ -81,7 +85,13 @@ export default function BookerEventForm({
   const submit = handleSubmit(
     async (values) => {
       await onSubmit(
-        bookerEventFormToPayload(values, initialEvent ? initialEvent.status : 'draft'),
+        bookerEventFormToPayload(
+          // On create the locked organization always wins; editing keeps the
+          // event's existing organization untouched.
+          !initialEvent && lockedOrganizationId
+            ? { ...values, organization: lockedOrganizationId }
+            : values,
+        ),
       );
     },
     (fieldErrors) => {
@@ -154,6 +164,8 @@ export default function BookerEventForm({
         <Select
           label="Organization"
           required
+          disabled={Boolean(lockedOrganizationId)}
+          className="disabled:cursor-not-allowed disabled:bg-slate-50"
           options={organizationOptions}
           error={errors.organization?.message}
           {...register('organization')}

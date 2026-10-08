@@ -1,9 +1,10 @@
-import type { EventPayload, EventRecord, EventStatus } from '../api/eventApi';
+import type { EventPayload, EventRecord } from '../api/eventApi';
 import { refId } from '../api/eventApi';
 import { toInputDate, toInputTime } from '../utils/format';
 
 // Shape of the create/edit form. The backend stores a single ISO start and
 // end date; the form splits them into one date + start/end time fields.
+// Status is not part of the form: it follows the booking automatically.
 export interface EventFormValues {
   name: string;
   organization: string;
@@ -12,7 +13,6 @@ export interface EventFormValues {
   startTime: string; // HH:MM
   endTime: string; // HH:MM
   description: string;
-  status: EventStatus;
 }
 
 export type EventFormErrors = Partial<Record<keyof EventFormValues, string>>;
@@ -25,16 +25,7 @@ export const emptyEventForm: EventFormValues = {
   startTime: '',
   endTime: '',
   description: '',
-  status: 'draft',
 };
-
-export const EVENT_STATUSES: EventStatus[] = [
-  'draft',
-  'planned',
-  'ongoing',
-  'completed',
-  'cancelled',
-];
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -92,7 +83,6 @@ export function eventToFormValues(event: EventRecord): EventFormValues {
     startTime: toInputTime(event.startDate),
     endTime: toInputTime(event.endDate),
     description: event.description ?? '',
-    status: event.status,
   };
 }
 
@@ -108,6 +98,5 @@ export function eventFormToPayload(values: EventFormValues): EventPayload {
     ...(values.description.trim() && { description: values.description.trim() }),
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
-    status: values.status,
   };
 }

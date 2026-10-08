@@ -2,7 +2,7 @@
 // response shapes of /api/events, /api/events/:id/conflicts and
 // /api/events/:id/readiness.
 
-export type EventStatus = 'draft' | 'planned' | 'ongoing' | 'completed' | 'cancelled';
+export type EventStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed';
 
 export type RequirementPriority = 'low' | 'medium' | 'high';
 
@@ -47,7 +47,9 @@ export interface EventPayload {
   description?: string;
   startDate: string;
   endDate: string;
-  status: EventStatus;
+  // Status follows the booking; only the terminal values may be sent
+  // (complete/cancel), so it is optional on payloads.
+  status?: EventStatus;
 }
 
 export interface RequirementPayload {

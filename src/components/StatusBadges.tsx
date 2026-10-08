@@ -1,4 +1,4 @@
-import { Ban, CheckCircle2, CircleDot, FileText, Info, XCircle } from 'lucide-react';
+import { Ban, CheckCircle2, CircleDot, Info, XCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { BookingStatus } from '../types/booking';
 import type { EventStatus } from '../types/event';
@@ -12,12 +12,14 @@ interface StatusSpec {
   icon: LucideIcon;
 }
 
+// Event status mirrors the booking vocabulary (lowercase), so each tone
+// matches its booking counterpart.
 const eventStatuses: Record<EventStatus, StatusSpec> = {
-  draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700', icon: FileText },
-  planned: { label: 'Planned', className: 'bg-brand-100 text-brand-800', icon: CircleDot },
-  ongoing: { label: 'Ongoing', className: 'bg-amber-100 text-amber-800', icon: CircleDot },
+  pending: { label: 'Pending', className: 'bg-amber-100 text-amber-800', icon: CircleDot },
+  approved: { label: 'Approved', className: 'bg-brand-100 text-brand-800', icon: CheckCircle2 },
+  rejected: { label: 'Rejected', className: 'bg-red-100 text-red-700', icon: XCircle },
+  cancelled: { label: 'Cancelled', className: 'bg-slate-100 text-slate-600', icon: Ban },
   completed: { label: 'Completed', className: 'bg-lime-100 text-lime-800', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-700', icon: XCircle },
 };
 
 const bookingStatuses: Record<BookingStatus, StatusSpec> = {

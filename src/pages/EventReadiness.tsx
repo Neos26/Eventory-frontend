@@ -17,7 +17,6 @@ import {
   getErrorMessage,
   isNotFound,
   refId,
-  updateEvent,
 } from '../api/eventApi';
 import type {
   EventRecord,
@@ -28,9 +27,9 @@ import type {
 import { formatDate, formatTime } from '../utils/format';
 
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
-  draft: 'gray',
-  planned: 'indigo',
-  ongoing: 'green',
+  pending: 'gray',
+  approved: 'indigo',
+  rejected: 'red',
   completed: 'gray',
   cancelled: 'red',
 };
@@ -48,9 +47,6 @@ export default function EventReadiness() {
   const [readiness, setReadiness] = useState<ReadinessReport | null>(null);
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
-
-  const [confirming, setConfirming] = useState(false);
-  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   useDocumentTitle('Event Readiness');
 
@@ -113,19 +109,6 @@ export default function EventReadiness() {
     }
     return names;
   }, [requirements]);
-
-  const confirmEvent = async () => {
-    if (!eventId) return;
-    setConfirming(true);
-    setConfirmError(null);
-    try {
-      setEvent(await updateEvent(eventId, { status: 'planned' }));
-    } catch (requestError) {
-      setConfirmError(getErrorMessage(requestError));
-    } finally {
-      setConfirming(false);
-    }
-  };
 
   if (loading) {
     return <LoadingState message="Loading event..." />;
@@ -214,17 +197,8 @@ export default function EventReadiness() {
                     </p>
                   </div>
                 </div>
-                {event.status === 'draft' ? (
-                  ready && (
-                    <Button onClick={() => void confirmEvent()} disabled={confirming}>
-                      {confirming ? 'Confirming…' : 'Confirm Event'}
-                    </Button>
-                  )
-                ) : (
-                  <Badge tone={statusTones[event.status]}>{event.status}</Badge>
-                )}
+                <Badge tone={statusTones[event.status]}>{event.status}</Badge>
               </div>
-              {confirmError && <p className="mt-2 text-sm text-red-600">{confirmError}</p>}
             </div>
 
             {/* Availability checklist */}

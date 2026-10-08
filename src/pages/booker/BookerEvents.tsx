@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, MapPin, Pencil, Plus, Search, Settings2 } from 'lucide-react';
 import { fetchEvents, getErrorMessage } from '../../api/eventApi';
+import { bookingEventId, fetchBookings } from '../../api/bookingApi';
+import type { BookingRecord, BookingStatus } from '../../api/bookingApi';
 import { fetchVenues } from '../../api/venueApi';
 import useDocumentTitle from '../../hooks/useDocumentTitle';
 import Card from '../../components/Card';
@@ -11,25 +13,26 @@ import LoadingState from '../../components/LoadingState';
 import PageHeader from '../../components/PageHeader';
 import PaginatedList from '../../components/PaginatedList';
 import Select from '../../components/Select';
-import { EventStatusBadge } from '../../components/StatusBadges';
+import { BookingStatusBadge } from '../../components/StatusBadges';
 import { formatDate, formatTime } from '../../utils/format';
-import type { EventRecord, EventStatus } from '../../types/event';
+import type { EventRecord } from '../../types/event';
 
-type StatusFilter = 'all' | EventStatus;
+type StatusFilter = 'all' | BookingStatus;
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'planned', label: 'Planned' },
-  { value: 'ongoing', label: 'Ongoing' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Approved', label: 'Approved' },
+  { value: 'Rejected', label: 'Rejected' },
+  { value: 'Cancelled', label: 'Cancelled' },
+  { value: 'Completed', label: 'Completed' },
 ];
 
 export default function BookerEvents() {
   useDocumentTitle('My Events');
 
   const [events, setEvents] = useState<EventRecord[]>([]);
+  const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [venueNames, setVenueNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,12 +43,14 @@ export default function BookerEvents() {
     setLoading(true);
     setError(null);
     try {
-      const [eventList, venues] = await Promise.all([
+      const [eventList, venues, bookingList] = await Promise.all([
         fetchEvents(),
         fetchVenues().catch(() => []),
+        fetchBookings().catch(() => [] as BookingRecord[]),
       ]);
       setEvents(eventList);
       setVenueNames(new Map(venues.map((venue) => [venue._id, venue.name])));
+      setBookings(bookingList);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -57,20 +62,44 @@ export default function BookerEvents() {
     void load();
   }, [load]);
 
+  // Event id -> booking status. The API returns newest bookings first, so
+  // the first booking seen for an event is the one displayed.
+  const bookingByEvent = useMemo(() => {
+    const map = new Map<string, BookingStatus>();
+    for (const booking of bookings) {
+      const eventId = bookingEventId(booking);
+      if (!map.has(eventId)) map.set(eventId, booking.status);
+    }
+    return map;
+  }, [bookings]);
+
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return events
-      .filter((event) => (status === 'all' ? true : event.status === status))
+      .filter((event) => (status === 'all' ? true : bookingByEvent.get(event._id) === status))
       .filter((event) => (needle ? event.name.toLowerCase().includes(needle) : true))
       .sort(
         (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
       );
-  }, [events, query, status]);
+  }, [events, query, status, bookingByEvent]);
 
   const venueOf = (event: EventRecord): string => {
     if (!event.venue) return 'No venue';
     if (typeof event.venue === 'string') return venueNames.get(event.venue) ?? 'Assigned venue';
     return event.venue.name;
+  };
+
+  // Booking status chip for an event card; events without a booking get a
+  // neutral "No booking" chip instead.
+  const bookingBadge = (eventId: string) => {
+    const bookingStatus = bookingByEvent.get(eventId);
+    return bookingStatus ? (
+      <BookingStatusBadge status={bookingStatus} />
+    ) : (
+      <span className="whitespace-nowrap rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+        No booking
+      </span>
+    );
   };
 
   if (loading) return <LoadingState message="Loading your events..." />;
@@ -80,7 +109,7 @@ export default function BookerEvents() {
     <>
       <PageHeader
         title="My Events"
-        description="Everything you have created, from draft to completed."
+        description="Everything you have created, with its booking status."
         actions={
           <Link
             to="/booker/events/create"
@@ -156,7 +185,7 @@ export default function BookerEvents() {
                 >
                   <span className="line-clamp-2">{event.name}</span>
                 </Link>
-                <EventStatusBadge status={event.status} />
+                {bookingBadge(event._id)}
               </div>
 
               <div className="mt-3 space-y-1.5 text-xs text-slate-500">

@@ -6,7 +6,6 @@ import Select from './Select';
 import {
   emptyEventForm,
   eventFormToPayload,
-  EVENT_STATUSES,
   validateEventForm,
 } from '../schemas/eventForm';
 import type { EventFormErrors, EventFormValues } from '../schemas/eventForm';
@@ -22,8 +21,6 @@ interface EventFormProps {
   onSubmit: (payload: EventPayload) => void;
   onCancel: () => void;
 }
-
-const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
 // Shared create/edit form. Validates before handing a payload to the page.
 export default function EventForm({
@@ -116,18 +113,6 @@ export default function EventForm({
           value={values.date}
           onChange={(event) => setField('date', event.target.value)}
           error={errors.date}
-        />
-
-        <Select
-          label="Status"
-          name="status"
-          value={values.status}
-          onChange={(event) => setField('status', event.target.value)}
-          error={errors.status}
-          options={EVENT_STATUSES.map((status) => ({
-            value: status,
-            label: capitalize(status),
-          }))}
         />
 
         <Input

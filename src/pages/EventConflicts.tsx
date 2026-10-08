@@ -15,9 +15,9 @@ import type { ConflictRecord, ConflictsReport, EventRecord, EventStatus } from '
 import { formatDate, formatTime } from '../utils/format';
 
 const statusTones: Record<EventStatus, 'gray' | 'indigo' | 'green' | 'red'> = {
-  draft: 'gray',
-  planned: 'indigo',
-  ongoing: 'green',
+  pending: 'gray',
+  approved: 'indigo',
+  rejected: 'red',
   completed: 'gray',
   cancelled: 'red',
 };
