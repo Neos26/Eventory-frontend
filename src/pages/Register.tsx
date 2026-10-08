@@ -46,6 +46,8 @@ export default function Register() {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationRecord[]>([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
+  const [orgsError, setOrgsError] = useState(false);
 
   const {
     register: registerField,
@@ -67,18 +69,25 @@ export default function Register() {
   const role = watch('role');
 
   // Organizations are public - fetched so bookers can join one at signup.
+  // Failures are surfaced (the field stays visible with a retry) instead of
+  // hiding the picker, which would strand bookers on a required field.
+  const loadOrganizations = async () => {
+    setOrgsLoading(true);
+    setOrgsError(false);
+    try {
+      const list = await fetchOrganizations();
+      setOrganizations(list);
+    } catch {
+      setOrganizations([]);
+      setOrgsError(true);
+    } finally {
+      setOrgsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let cancelled = false;
-    fetchOrganizations()
-      .then((list) => {
-        if (!cancelled) setOrganizations(list);
-      })
-      .catch(() => {
-        // Registration still works without the picker.
-      });
-    return () => {
-      cancelled = true;
-    };
+    void loadOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Already signed in? Go straight to the role home.
@@ -277,52 +286,76 @@ export default function Register() {
               </div>
             </div>
 
-            {organizations.length > 0 && (
-              <div>
-                <label
-                  htmlFor="organizationId"
-                  className="mb-1 block text-sm font-medium text-slate-700"
-                >
-                  Organization{' '}
-                  {role === 'booker' ? (
-                    <span className="text-red-500" aria-hidden="true">
-                      *
-                    </span>
-                  ) : (
-                    <span className="font-normal text-slate-400">(optional)</span>
-                  )}
-                </label>
-                <div className="relative">
-                  <Building2
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                    aria-hidden="true"
-                  />
-                  <select
-                    id="organizationId"
-                    className={`${fieldClass(Boolean(errors.organizationId))} cursor-pointer appearance-none pr-9`}
-                    {...registerField('organizationId')}
-                  >
-                    <option value="">
-                      {role === 'booker' ? 'Select an organization' : 'No organization'}
-                    </option>
-                    {organizations.map((organization) => (
-                      <option key={organization._id} value={organization._id}>
-                        {organization.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                {errors.organizationId && (
-                  <p role="alert" className="mt-1 text-xs text-red-600">
-                    {errors.organizationId.message}
-                  </p>
+            <div>
+              <label
+                htmlFor="organizationId"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                Organization{' '}
+                {role === 'booker' ? (
+                  <span className="text-red-500" aria-hidden="true">
+                    *
+                  </span>
+                ) : (
+                  <span className="font-normal text-slate-400">(optional)</span>
                 )}
+              </label>
+              <div className="relative">
+                <Building2
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
+                <select
+                  id="organizationId"
+                  className={`${fieldClass(Boolean(errors.organizationId))} cursor-pointer appearance-none pr-9`}
+                  {...registerField('organizationId')}
+                >
+                  <option value="">
+                    {orgsLoading
+                      ? 'Loading organizations…'
+                      : organizations.length === 0
+                        ? 'No organizations available'
+                        : role === 'booker'
+                          ? 'Select an organization'
+                          : 'No organization'}
+                  </option>
+                  {organizations.map((organization) => (
+                    <option key={organization._id} value={organization._id}>
+                      {organization.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
               </div>
-            )}
+              {orgsError && (
+                <div
+                  role="alert"
+                  className="mt-1 flex items-center justify-between gap-2 text-xs text-red-600"
+                >
+                  <span>Couldn't load organizations — check that the backend is running.</span>
+                  <button
+                    type="button"
+                    onClick={() => void loadOrganizations()}
+                    className="shrink-0 font-semibold underline hover:no-underline"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              {!orgsError && !orgsLoading && organizations.length === 0 && (
+                <p className="mt-1 text-xs text-amber-600">
+                  No organizations available yet — ask an administrator to create one first.
+                </p>
+              )}
+              {errors.organizationId && (
+                <p role="alert" className="mt-1 text-xs text-red-600">
+                  {errors.organizationId.message}
+                </p>
+              )}
+            </div>
 
             <button
               type="submit"
